@@ -1,0 +1,1 @@
+(async () => { const s=(ms)=>new Promise(r=>setTimeout(r,ms)); document.querySelector('#list .item[data-id="yin-hu-shang"]').click(); await s(2200); return {title: document.getElementById('dTitle').textContent}; })()
