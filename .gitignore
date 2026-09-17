@@ -6,3 +6,7 @@
 dist/
 shots/
 
+# Wrangler 本地状态与密钥（wrangler.jsonc 本身要提交，见该文件注释）
+.wrangler/
+.dev.vars
+

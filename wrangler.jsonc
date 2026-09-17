@@ -1,0 +1,26 @@
+/* ============================================================
+   中华诗词地图 · Cloudflare Workers 部署配置
+   ----------------------------------------------------------
+   站点是纯静态产物（vite build → dist/），所以这里只要一个「静态资源
+   Worker」：assets.directory 指到 dist/，不写 main、没有服务端脚本。
+
+   这个文件必须提交：仓库里没有 Wrangler 配置时，`wrangler deploy` 会
+   自动配置（autoconfig）——它会装 @cloudflare/vite-plugin 并往 Vite
+   配置里插插件。本项目用的是 vite.config.mjs 且 package.json 是
+   "type": "commonjs"，自动生成的 vite.config.js 会以 CJS 加载那个
+   ESM-only 的包，构建直接报
+   「This package is ESM only but it was tried to load by require」。
+   有了本文件，autoconfig 不再触发，部署行为完全由此处决定。
+   ============================================================ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "poemmap",
+  "compatibility_date": "2026-09-16",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
