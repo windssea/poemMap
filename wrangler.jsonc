@@ -16,6 +16,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "poemmap",
   "compatibility_date": "2026-09-16",
+  /* 构建也交给 wrangler：Cloudflare 的部署命令是 `npx wrangler deploy`，
+     部署流水线自己不会先跑 npm run build（autoconfig 那次是 wrangler 代跑的）。
+     写在 build.command 里，deploy 前就会先产出 dist/，否则会报
+     「assets.directory ... does not exist」。 */
+  "build": {
+    "command": "npm run build"
+  },
   "observability": {
     "enabled": true
   },
