@@ -103,16 +103,6 @@ svg { display: block; }
   overflow: hidden;
 }
 #paint img { position: absolute; user-select: none; }
-.p-mount {
-  left: 21%; top: -40px;
-  width: min(42vw, 540px);
-  height: 190px;
-  object-fit: cover;
-  object-position: 50% 22%;
-  opacity: .88;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 44%, rgba(0, 0, 0, 0) 100%);
-          mask-image: linear-gradient(180deg, #000 0%, #000 44%, rgba(0, 0, 0, 0) 100%);
-}
 .p-cloud {
   left: 48%; top: 38px;
   width: min(18vw, 210px);
@@ -123,13 +113,6 @@ svg { display: block; }
   left: 43%; top: 28px;
   width: 52px;
   opacity: .8;
-}
-.p-pine {
-  right: -22px; top: 46%;
-  width: min(14vw, 160px);
-  opacity: .38;
-  -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, #000 52%);
-          mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, #000 52%);
 }
 .p-wave {
   right: 3%; bottom: -18px;
@@ -157,6 +140,56 @@ html.motion-off .p-crane { animation: none; }
 .leaflet-control-zoom { display: none; }
 .leaflet-tile, .leaflet-image-layer { image-rendering: auto; }
 
+/* ══════════ 滚动条（全套一处定义） ══════════
+   细、圆、暖灰，轨道透明——滚动条是「纸边的竹签」，不该抢内容。
+   两套写在一起：Chrome 121+ / Firefox 认标准属性（scrollbar-width /
+   scrollbar-color），Safari 与老 WebKit 认 ::-webkit-scrollbar。
+   凡可滚动的容器都列在下面这串选择器里，改一处即全局统一。 */
+.side-list, .panel-body, #card, #poemList, .detail-body, .c-poem, .d-poem {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 134, 104, .34) transparent;
+}
+.side-list::-webkit-scrollbar,
+.panel-body::-webkit-scrollbar,
+#card::-webkit-scrollbar,
+#poemList::-webkit-scrollbar,
+.detail-body::-webkit-scrollbar,
+.c-poem::-webkit-scrollbar,
+.d-poem::-webkit-scrollbar { width: 8px; height: 8px; }
+.side-list::-webkit-scrollbar-track,
+.panel-body::-webkit-scrollbar-track,
+#card::-webkit-scrollbar-track,
+#poemList::-webkit-scrollbar-track,
+.detail-body::-webkit-scrollbar-track,
+.c-poem::-webkit-scrollbar-track,
+.d-poem::-webkit-scrollbar-track,
+.side-list::-webkit-scrollbar-corner,
+.panel-body::-webkit-scrollbar-corner,
+#card::-webkit-scrollbar-corner,
+#poemList::-webkit-scrollbar-corner,
+.detail-body::-webkit-scrollbar-corner,
+.c-poem::-webkit-scrollbar-corner,
+.d-poem::-webkit-scrollbar-corner { background: transparent; }
+.side-list::-webkit-scrollbar-thumb,
+.panel-body::-webkit-scrollbar-thumb,
+#card::-webkit-scrollbar-thumb,
+#poemList::-webkit-scrollbar-thumb,
+.detail-body::-webkit-scrollbar-thumb,
+.c-poem::-webkit-scrollbar-thumb,
+.d-poem::-webkit-scrollbar-thumb {
+  background-color: rgba(150, 134, 104, .34);
+  border: 2px solid transparent;   /* 留两圈透明，视觉上更细 */
+  border-radius: 999px;
+  background-clip: content-box;
+}
+.side-list::-webkit-scrollbar-thumb:hover,
+.panel-body::-webkit-scrollbar-thumb:hover,
+#card::-webkit-scrollbar-thumb:hover,
+#poemList::-webkit-scrollbar-thumb:hover,
+.detail-body::-webkit-scrollbar-thumb:hover,
+.c-poem::-webkit-scrollbar-thumb:hover,
+.d-poem::-webkit-scrollbar-thumb:hover { background-color: rgba(150, 134, 104, .52); }
+
 /* ══════════ 地图标注 ══════════ */
 .mk-wrap { background: none; border: none; }
 .mk-offset { display: block; transition: transform .3s cubic-bezier(.2, .8, .3, 1.1); }
@@ -168,21 +201,56 @@ html.motion-off .p-crane { animation: none; }
   width: 12px;
   height: 12px;
   cursor: pointer;
+  /* 珠径随缩放走：全国视野下点小而密（不糊成一片），
+     放大后珠子放大、好点也好认。由 mapEngine 在缩放到档时切 body 上的类。 */
+  --dot: 12px;
+  --dot-ring: rgba(178, 146, 88, .22);
 }
-/* 小筑：朱红攒尖顶 + 米白台基 */
+body.zoom-far  .dot-wrap { --dot: 10px; }
+body.zoom-near .dot-wrap { --dot: 14px; }
+
+/* 地标：一枚朱漆珠。
+   三层做「精致」：内圈一道暗线收边（不是一团糊渐变）、
+   漆面一点偏左上高光、外面先留一圈羊皮纸白再压一道金色细环——
+   落在青绿山水与米黄省区上都读得出来，也不像贴上去的圆点。 */
 .dot {
   position: absolute;
-  inset: 0;
-  width: 13px;
-  height: 13px;
+  left: 50%;
+  top: 50%;
+  width: var(--dot);
+  height: var(--dot);
+  margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #f2c9a4, #b8382e 62%, #8b241d);
-  box-shadow: 0 0 0 3px rgba(255, 252, 242, .82), 0 1px 4px rgba(104, 60, 30, .45);
+  background: radial-gradient(circle at 34% 28%,
+    #f7d2ad 0%, #cf4a3e 44%, #b03228 72%, #8b241d 100%);
+  box-shadow:
+    inset 0 0 0 .5px rgba(120, 30, 24, .42),
+    0 0 0 2.5px rgba(255, 252, 242, .88),
+    0 0 0 3.5px var(--dot-ring),
+    0 1px 3px rgba(104, 60, 30, .36);
   transition: transform .22s cubic-bezier(.2, .9, .3, 1.4), box-shadow .22s ease;
 }
+.dot::after {
+  content: "";
+  position: absolute;
+  left: 24%;
+  top: 18%;
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 249, 240, .88), rgba(255, 249, 240, 0) 72%);
+  pointer-events: none;
+}
+/* 一处多首：金环实一点，扫一眼就知道「这点开是一串」 */
+.dot.many { --dot-ring: rgba(168, 133, 68, .55); }
+
 .dot-wrap:hover .dot {
-  transform: scale(1.35);
-  box-shadow: 0 0 0 4px rgba(255, 252, 242, .9), 0 2px 8px rgba(104, 60, 30, .5);
+  transform: scale(1.3);
+  box-shadow:
+    inset 0 0 0 .5px rgba(120, 30, 24, .45),
+    0 0 0 3px rgba(255, 252, 242, .95),
+    0 0 0 4.5px var(--dot-ring),
+    0 2px 7px rgba(104, 60, 30, .44);
 }
 .dot-wrap:hover { z-index: 40; }
 .dot-name {
@@ -190,34 +258,43 @@ html.motion-off .p-crane { animation: none; }
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 5px;
+  margin-top: calc(var(--dot) / 2 + 2px);
   font-family: var(--serif);
-  font-size: 13px;
+  font-size: 12.5px;
   letter-spacing: .12em;
   line-height: 1.25;
-  color: #4a4536;
+  color: #4d4738;
   white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(255, 253, 246, .95), 0 0 9px rgba(250, 246, 235, .95), 0 0 3px rgba(255, 255, 255, .9);
+  /* 字压在山与色块上：描一圈纸色、再加一点点暖光，别用三重重阴影（会糊） */
+  text-shadow: 0 0 3px rgba(253, 250, 242, .98), 0 0 6px rgba(250, 246, 235, .9), 0 1px 0 rgba(255, 253, 246, .9);
   transition: opacity .3s ease;
 }
+body.zoom-far .dot-name { font-size: 12px; }
 .dot-count {
   font-size: 9.5px;
   vertical-align: super;
   color: var(--seal);
-  margin-left: 1px;
+  margin-left: 1.5px;
   letter-spacing: 0;
+  opacity: .85;
 }
 
-/* 选中：朱红名签（横排小匾）+ 涟漪 */
+/* 选中：珠子亮一档、微微放大，名签换成朱红小匾 + 涟漪 */
 .dot-wrap.on { z-index: 30; }
 .dot-wrap.on .dot {
-  background: radial-gradient(circle at 34% 28%, #e4887a, #b5352c 58%, #8d261f);
-  box-shadow: 0 0 0 4px rgba(255, 252, 242, .9), 0 1px 5px rgba(120, 30, 24, .5);
+  background: radial-gradient(circle at 34% 28%,
+    #f3b79c 0%, #c94034 44%, #a32c23 72%, #8d261f 100%);
+  transform: scale(1.16);
+  box-shadow:
+    inset 0 0 0 .5px rgba(120, 30, 24, .5),
+    0 0 0 3px rgba(255, 252, 242, .95),
+    0 0 0 4.5px rgba(168, 50, 42, .3),
+    0 2px 7px rgba(120, 30, 24, .4);
 }
 .dot-wrap.on .dot-name {
-  margin-top: 10px;
-  padding: 3px 9px;
-  font-size: 13.5px;
+  margin-top: calc(var(--dot) / 2 + 6px);
+  padding: 3px 10px;
+  font-size: 13px;
   letter-spacing: .16em;
   color: #fdf4e6;
   background: linear-gradient(180deg, #b0362c, #92271e);
@@ -236,26 +313,26 @@ html.motion-off .p-crane { animation: none; }
   border: 4px solid transparent;
   border-bottom-color: #b0362c;
 }
-.dot-wrap.on .dot-count { color: #ffe6c8; }
+.dot-wrap.on .dot-count { color: #ffe6c8; opacity: 1; }
 .dot-glow {
   position: absolute;
   left: 50%; top: 50%;
-  width: 116px; height: 116px;
-  margin: -58px 0 0 -58px;
+  width: 92px; height: 92px;
+  margin: -46px 0 0 -46px;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 50, 42, .26) 0%, rgba(168, 50, 42, .13) 36%, rgba(168, 50, 42, 0) 70%);
-  animation: dotPulse 3.4s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(168, 50, 42, .2) 0%, rgba(168, 50, 42, .1) 38%, rgba(168, 50, 42, 0) 72%);
+  animation: dotPulse 3.8s ease-in-out infinite;
 }
 .dot-ring {
   position: absolute;
   left: 50%; top: 50%;
-  width: 14px; height: 14px;
-  margin: -7px 0 0 -7px;
+  width: calc(var(--dot) + 2px); height: calc(var(--dot) + 2px);
+  margin: calc((var(--dot) + 2px) / -2) 0 0 calc((var(--dot) + 2px) / -2);
   border-radius: 50%;
-  border: 1.5px solid rgba(168, 50, 42, .5);
+  border: 1.2px solid rgba(168, 50, 42, .46);
   pointer-events: none;
-  animation: dotRipple 3s cubic-bezier(.2, .6, .4, 1) infinite;
+  animation: dotRipple 3.2s cubic-bezier(.2, .6, .4, 1) infinite;
 }
 @keyframes dotPulse {
   0%, 100% { opacity: .5; transform: scale(.92); }
@@ -383,13 +460,20 @@ body.show-prov .prov-label span { opacity: 1; }
   align-items: center;
   height: 37px;
   padding: 0 10px;
-  background: rgba(255, 253, 247, .95);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  box-shadow: var(--shadow-s);
+  /* 纸面：上亮下暗的一点点渐变 + 内顶高光，白盒子才有「纸」的厚薄 */
+  background: linear-gradient(180deg, #fffdf7, #faf5e8);
+  border: 1px solid rgba(214, 196, 164, .95);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(112, 88, 52, .06), 0 7px 18px rgba(112, 88, 52, .07),
+              inset 0 1px 0 rgba(255, 255, 255, .9);
   transition: border-color .2s ease, box-shadow .2s ease;
 }
-.search:focus-within { border-color: rgba(168, 50, 42, .42); box-shadow: 0 0 0 3px rgba(168, 50, 42, .07); }
+.search:hover { border-color: rgba(195, 166, 103, .95); }
+.search:focus-within {
+  border-color: rgba(168, 50, 42, .45);
+  box-shadow: 0 0 0 3px rgba(168, 50, 42, .08), 0 8px 20px rgba(112, 88, 52, .09),
+              inset 0 1px 0 rgba(255, 255, 255, .9);
+}
 .search .i-search {
   width: 15px; height: 15px;
   flex: none;
@@ -427,43 +511,58 @@ body.show-prov .prov-label span { opacity: 1; }
 .chipbar {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin-top: 9px;
+  /* 筛选条收成一枚「纸胶囊」：与搜索框同一套纸面与描边，
+     右上的控件才像一组，而不是散落在图上 */
+  padding: 5px 6px 5px 9px;
+  background: linear-gradient(180deg, rgba(255, 253, 247, .96), rgba(250, 245, 232, .94));
+  border: 1px solid rgba(214, 196, 164, .95);
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(112, 88, 52, .05), 0 8px 20px rgba(112, 88, 52, .07),
+              inset 0 1px 0 rgba(255, 255, 255, .85);
   flex-wrap: wrap;          /* 极窄屏时圆钮另起一行，好过被裁掉 */
-  row-gap: 7px;
+  row-gap: 6px;
 }
-.chips { display: flex; align-items: center; gap: 2px; flex: none; }
+.chips { display: flex; align-items: center; gap: 3px; flex: none; }
 .chips button {
-  padding: 5px 11px;
+  padding: 5px 12px;
   font-size: 12.5px;
   letter-spacing: .1em;
   white-space: nowrap;      /* 字不许竖着排 */
   color: var(--ink-2);
-  background: none;
+  background: rgba(195, 166, 103, .07);
   border: 1px solid transparent;
   border-radius: 999px;
-  transition: color .2s ease, background .2s ease, box-shadow .2s ease;
+  transition: color .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
-.chips button:hover { color: var(--ink); background: rgba(195, 166, 103, .16); }
+.chips button:hover { color: var(--ink); background: rgba(195, 166, 103, .2); }
 .chips button[aria-pressed="true"] {
   color: #fdf4e6;
   background: linear-gradient(180deg, #b0362c, #98281f);
-  box-shadow: 0 3px 9px rgba(140, 46, 34, .28), inset 0 1px 0 rgba(255, 200, 170, .22);
+  box-shadow: 0 3px 9px rgba(140, 46, 34, .26), inset 0 1px 0 rgba(255, 200, 170, .24),
+              inset 0 0 0 1px rgba(255, 226, 196, .18);
 }
-.chip-sep { width: 1px; height: 15px; background: var(--line); }
+.chip-sep { width: 1px; height: 15px; background: linear-gradient(180deg, transparent, var(--line) 22%, var(--line) 78%, transparent); }
 .chip-fill { flex: 1; }
 .round-btn {
   flex: none;
   width: 29px; height: 29px;
   display: grid;
   place-items: center;
-  background: rgba(255, 253, 247, .95);
+  background: rgba(255, 253, 247, .9);
   border: 1px solid var(--line);
   border-radius: 50%;
-  box-shadow: var(--shadow-s);
-  transition: background .2s ease, transform .2s ease, border-color .2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+  transition: background .2s ease, transform .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
-.round-btn:hover { background: #fff; border-color: rgba(168, 50, 42, .42); transform: translateY(-1px); }
+.round-btn:hover {
+  background: #fff;
+  border-color: rgba(168, 50, 42, .42);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(112, 88, 52, .12), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+.round-btn:active { transform: translateY(0); }
 .round-btn svg { width: 15px; height: 15px; fill: none; stroke: var(--ink-2); stroke-width: 1.9; stroke-linecap: round; }
 .round-btn[aria-expanded="true"] { border-color: rgba(168, 50, 42, .5); }
 .round-btn[aria-expanded="true"] svg { stroke: var(--seal); }
@@ -562,11 +661,8 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 8px 10px 14px;
-  scrollbar-width: thin;
 }
-.side-list::-webkit-scrollbar { width: 6px; }
-.side-list::-webkit-scrollbar-thumb { background: rgba(150, 134, 104, .3); border-radius: 3px; }
-.side-list::-webkit-scrollbar-track { background: transparent; }
+
 
 .item {
   display: flex;
@@ -713,13 +809,11 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;              /* 竖向永不滚动：那一轴没有溢出（位移已被内边距吸收） */
-  scrollbar-width: thin;
   background: linear-gradient(180deg, rgba(195, 166, 103, .085), rgba(195, 166, 103, .035));
   border-radius: 5px;
 }
-.c-poem::-webkit-scrollbar { height: 6px; }
-.c-poem::-webkit-scrollbar-thumb { background: rgba(150, 134, 104, .3); border-radius: 3px; }
 .c-poem .col {
+  position: relative;
   display: block;
   padding: 4px 13px;
   font-family: var(--serif);
@@ -728,9 +822,22 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   line-height: 1.98;
   letter-spacing: .2em;
   color: #2f271e;
-  border-right: 1px solid rgba(195, 166, 103, .3);
 }
-.c-poem .col:first-child { border-right: none; }
+/* 句与句之间：一根上下渐隐的牙签线（比实线border轻，不抢字） */
+.c-poem .col::after,
+.d-poem .line::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 9%;
+  bottom: 9%;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(195, 166, 103, 0) 0%, rgba(195, 166, 103, .42) 16%,
+    rgba(195, 166, 103, .42) 84%, rgba(195, 166, 103, 0) 100%);
+}
+.c-poem .col:first-child::after { display: none; }
 
 /* 句数多的长词：把列收紧一档，好让整首在常见窗口宽度内一次读完
    （18 句起 18px／列宽 ≈51px，24 句以内都放得下；《琵琶行》这类仍由滚动条兜底）。 */
@@ -856,10 +963,11 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   align-items: center;
   gap: 4px;
   padding: 7px 12px;
-  background: rgba(253, 248, 236, .95);
+  background: linear-gradient(180deg, rgba(253, 248, 236, .97), rgba(248, 242, 227, .95));
   border: 1px solid rgba(214, 196, 164, .95);
   border-radius: 999px;
-  box-shadow: var(--shadow-m);
+  box-shadow: 0 1px 2px rgba(112, 88, 52, .06), 0 10px 26px rgba(112, 88, 52, .12),
+              inset 0 1px 0 rgba(255, 255, 255, .8);
   /* 底色已 95% 不透明，模糊不可见；常驻的 backdrop-filter 会让「拖动地图」时
      逐帧重算背景模糊，去掉它省一整块每帧开销 */
   white-space: nowrap;
@@ -1047,10 +1155,9 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
   overflow-y: auto;
   overflow-x: hidden;
   padding: 30px 34px 46px;
-  scrollbar-width: none;          /* 隐藏竖向滚动条，保持通透 */
-  -ms-overflow-style: none;
+  /* 竖向滚动条不再隐藏：交给顶部那套统一样式给一条细暖灰。
+     磨砂玻璃上只是一道「竹签」，但「下面还有注释」看得见了。 */
 }
-.detail-body::-webkit-scrollbar { width: 0; height: 0; }
 
 /* 内容列：抽屉的宽度本来就由「中间的诗」撑出来，所以列撑满内容区，
    上下的标题、地名、注解区便自动与诗同宽；诗再在列里居中。
@@ -1112,16 +1219,15 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
      （短诗也会，且出现后诗栏还会被顶宽 10px——用户看到的「闪一下」。） */
   overflow-y: hidden;
   padding: 16px 6px 16px;    /* 上 16 收纳入场位移，左右 6 收纳倾斜，下留一点余量给滚动条 */
-  scrollbar-width: thin;
 }
-.d-poem::-webkit-scrollbar { height: 6px; }
-.d-poem::-webkit-scrollbar-thumb { background: rgba(150, 134, 104, .3); border-radius: 3px; }
 .d-poem .line {
+  position: relative;
   display: block;
   padding: 0 .14em;
-  border-right: 1px solid rgba(195, 166, 103, .22);
 }
-.d-poem .line:last-child { border-right: none; }
+/* 句间牙签线：与卡片同一条规则（见上方 .c-poem .col::after）。
+   线的开关也统一到「第一列（最右）不画」——那才是外缘。 */
+.d-poem .line:first-child::after { display: none; }
 
 .d-where {
   display: flex;
@@ -1216,9 +1322,7 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
   color: #2e2a23;
 }
 .panel-head .panel-close { position: static; }
-.panel-body { flex: 1; overflow-y: auto; padding: 16px 20px 40px; scrollbar-width: thin; }
-.panel-body::-webkit-scrollbar { width: 6px; }
-.panel-body::-webkit-scrollbar-thumb { background: rgba(150, 134, 104, .32); border-radius: 3px; }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .filters button {
@@ -1457,7 +1561,7 @@ html.motion-prep #paint { opacity: 0; }
     max-height: 68vh;
     overflow-y: auto;
   }
-  .p-pine, .p-wave { display: none; }
+  .p-wave { display: none; }
   #detail { width: 100vw; min-width: 0; max-width: 100vw; }
   .detail-body { padding: 26px 22px 40px; }
 }

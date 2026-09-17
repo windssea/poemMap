@@ -9,6 +9,7 @@
    data/select.js 的纯函数现算，避免两份状态互相打架。
    ============================================================ */
 import { useSyncExternalStore } from "react";
+import { narrow } from "./lib/dom.js";
 
 /** 动效开关的初值：以 <html> 上的类为准（index.html 内联脚本已按系统偏好定过） */
 function initialMotion() {
@@ -84,7 +85,11 @@ export const setTag = (v) => setState({ tag: v, author: "" });
 export const clearFacets = () => setState({ author: "", tag: "" });
 
 /* ---------------- 动作：地标 / 卡片 / 浮层 ---------------- */
+/* 窄屏没有中央卡片这一步：手机上一屏本来就窄，卡片再弹一次只是多一层遮挡，
+   所以任何「打开某一首诗」的入口（地标 / 篇目栏 / 索引 / 浮层 / 换一批 / 深链）
+   在窄屏一律直接进右侧抽屉。 */
 export function openCard(placeId, poemId) {
+  if (narrow() && poemId) { openDetail(poemId, placeId); return; }
   setState({
     activePlaceId: placeId,
     openPoemId: poemId || null,
@@ -105,10 +110,14 @@ export function closePoemList() {
 }
 
 /* ---------------- 动作：抽屉 ---------------- */
-export function openDetail(poemId) {
+/** 开抽屉。placeId 可选：窄屏从地标/篇目进来时顺手把地标点亮 */
+export function openDetail(poemId, placeId) {
   setState({
     detailPoemId: poemId,
-    openPoemId: poemId,
+    /* 桌面端留住 openPoemId：关抽屉要回到中央卡片。
+       窄屏不留——否则关掉抽屉又冒出卡片，正好是「不要弹出」的那一层。 */
+    openPoemId: narrow() ? null : poemId,
+    activePlaceId: placeId || state.activePlaceId,
     notesOpen: false,
     /* 进详情即收起中央卡片与浮层：画面只留一张抽屉 */
     poemListPlaceId: null,

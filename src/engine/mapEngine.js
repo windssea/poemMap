@@ -54,13 +54,23 @@ const PROV_FIX = {
   云南省: ["#d8e3b6", "#d2deaf"],
 };
 
+/** 把 #rrggbb 按百分比调亮/调暗（amt 为负即压深）。用于省区边缘的「托底」色。 */
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) {
+    const t = amt < 0 ? v * (1 + amt / 100) : v + (255 - v) * (amt / 100);
+    return Math.max(0, Math.min(255, Math.round(t)));
+  });
+  return "#" + c.map(function (v) { return ("0" + v.toString(16)).slice(-2); }).join("");
+}
+
 /* 山脊勾线（羽化与柔光靠几何，不用 CSS blur） */
 const RIDGE_INK = ["#5f7d68", "#66886f", "#6b8f74", "#647e6c"];
 /* 山脚收进的「雾色」：接近省区底色，山脚由此没入地面/云气 */
 const RIDGE_MIST = "#e9e4c6";
-/* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释） */
-const FACE_INK = "#44614f";
-
+/* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释）。
+   比主山最深的墨绿再暗一档，但靠低透明度只当「一层阴影」用。 */
+const FACE_INK = "#4d6b59";
 const CHINA_BOUNDS = L.latLngBounds([[17.4, 72.5], [54.2, 135.8]]);
 const PANE_Z = { prov: 400, terrain: 410, hydro: 418, wall: 425, border: 430, geoLabels: 470 };
 
@@ -119,16 +129,20 @@ export function createEngine(mapEl) {
     ratio: +(keptPts / rawProvPts).toFixed(3),
   };
 
-  /* ---- 省区底色 ---- */
+  /* ---- 省区底色 ----
+     一层平涂必然扁：真正让它「有厚度」的是三层叠色——
+     ① 每省自己的径向晕染（中心亮、边缘暗，中心按 adcode 抖动，省与省之间自然过渡）
+     ② 国境整片的一层大晕（西北偏暖沙、东南偏青绿，见下面 landWash）
+     ③ 省界描一道略深的「托边」，色块就像裱在纸上，而不是印在纸上 */
   L.geoJSON(provinces, {
     pane: "prov",
     style: function (f) {
       return {
         fillColor: "url(#pg" + f.properties.adcode + ")",
         fillOpacity: 1,
-        color: "#bcc0a6",
-        weight: 1,
-        opacity: 0.5,          // 省界只留一线淡痕，柔和的过渡交给径向渐变
+        color: "#aab08f",
+        weight: 1.5,
+        opacity: 0.38,         // 省界只留一线淡痕，柔和的过渡交给径向渐变
         lineJoin: "round",
       };
     },
@@ -143,13 +157,47 @@ export function createEngine(mapEl) {
       const pair = PROV_FIX[name] || TINTS[REGION[name] || "其他"] || TINTS["其他"];
       const jx = ((ad * 37) % 60 + 20) / 100;
       const jy = ((ad * 53) % 60 + 18) / 100;
+      /* 边缘再压深一档：色块之间原本只差一点点，平涂感就是这么来的。
+         中心留一大片亮（.58 之前不落），只让四周暗下去，才有「一块地」的厚度。 */
+      const edge = shade(pair[1], -7);
       defs += '<radialGradient id="pg' + ad + '" cx="' + jx.toFixed(2) + '" cy="' + jy.toFixed(2) +
-        '" r="0.78"><stop offset="0" stop-color="' + pair[0] +
-        '"/><stop offset="1" stop-color="' + pair[1] + '"/></radialGradient>';
+        '" r="0.94"><stop offset="0" stop-color="' + pair[0] +
+        '"/><stop offset="0.58" stop-color="' + pair[0] +
+        '"/><stop offset="1" stop-color="' + edge + '"/></radialGradient>';
     });
+    /* 国境大晕：西北暖沙、东南青绿。铺在整个国土上，
+       让 34 个省区从「各自一块色」变成「一张画上的明暗」。 */
+    defs += '<linearGradient id="landWash" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#dcc79b" stop-opacity="0.4"/>' +
+      '<stop offset="0.42" stop-color="#e8e0bd" stop-opacity="0.06"/>' +
+      '<stop offset="1" stop-color="#aecfa4" stop-opacity="0.36"/></linearGradient>';
+    /* 纸纹：斜向细线，只在国土上铺一层（.05 的白噪点之外再给一点「纸的走向」） */
+    defs += '<pattern id="landGrain" width="7" height="7" patternUnits="userSpaceOnUse"' +
+      ' patternTransform="rotate(38)">' +
+      '<rect width="7" height="7" fill="none"/>' +
+      '<path d="M0 0 V7" stroke="rgba(150, 138, 108, 0.055)" stroke-width="1"/></pattern>';
     const svg = map.getPane("prov").querySelector("svg");
     if (svg) svg.insertAdjacentHTML("afterbegin", "<defs>" + defs + "</defs>");
   })();
+
+  /* 国土整片的晕染（叠在省区之上、地形之下）+ 一层纸纹 + 海岸一线的托边 */
+  if (country.length) {
+    L.geoJSON(country, {
+      pane: "prov",
+      interactive: false,
+      style: { fillColor: "url(#landWash)", fillOpacity: 1, stroke: false },
+    }).addTo(map);
+    L.geoJSON(country, {
+      pane: "prov",
+      interactive: false,
+      style: { fillColor: "url(#landGrain)", fillOpacity: 1, stroke: false },
+    }).addTo(map);
+    L.geoJSON(country, {
+      pane: "prov",
+      interactive: false,
+      style: { fill: false, color: "#c6ba95", weight: 3, opacity: 0.34, lineJoin: "round" },
+    }).addTo(map);
+  }
 
   /* ---- 山体：远山 → 主山（单峰分层）→ 柔光脊 → 暗坡 → 皴 → 勾线 → 亮脊 ----
      四层由淡到浓、由后到前，山就有了纵深而不是一片剪影。
@@ -158,18 +206,20 @@ export function createEngine(mapEl) {
      注意：主山是「一段段单峰」拼起来的，所以一律不能描边——
      否则每座峰的边界都会被勾出一条竖线，整条山脉裂成格子。 */
   const T = TERRAIN.build();
+  /* 远山用半透明：色阶本来就淡，再让它透出一点底色，就成了「雾里的山」；
+     不透明时那层浅色会读成一条白边，与青绿的主山格外冲。 */
   (T.sils || []).forEach(function (s) {
     if (!s.far) return;
     L.polygon(s.latlngs, {
       pane: "terrain", lineJoin: "round", lineCap: "round", interactive: false,
-      fillColor: "url(#rgf" + s.tone + ")", fillOpacity: 1, stroke: false,
+      fillColor: "url(#rgf" + s.tone + ")", fillOpacity: 0.62, stroke: false,
     }).addTo(map);
   });
   (T.sils || []).forEach(function (s) {
     if (s.far) return;
     L.polygon(s.latlngs, {
       pane: "terrain", lineJoin: "round", lineCap: "round", interactive: false,
-      fillColor: "url(#rg" + s.tone + ")", fillOpacity: 1, stroke: false,
+      fillColor: "url(#rg" + s.tone + ")", fillOpacity: 0.94, stroke: false,
     }).addTo(map);
   });
   /* 背光坡：每座峰「峰顶→谷」的那半个坡覆一层暗色。
@@ -181,35 +231,37 @@ export function createEngine(mapEl) {
     T.faces.forEach(function (ring) {
       L.polygon(ring, {
         pane: "terrain", lineJoin: "round", lineCap: "round", interactive: false,
-        fillColor: FACE_INK, fillOpacity: 0.12, stroke: false,
+        fillColor: FACE_INK, fillOpacity: 0.085, stroke: false,
       }).addTo(map);
     });
   }
   /* 山脊上缘的一圈同色柔光。原来是靠 polygon 的粗描边做的，
-     切分之后描边会画到每座峰的接缝上，改成就沿脊线描一遍。 */
+     切分之后描边会画到每座峰的接缝上，改成就沿脊线描一遍。
+     这道柔光同时是主山与远山的过渡带：白绿之间的硬边由它化开。 */
   if ((T.hazes || []).length) {
     L.polyline(T.hazes.map(function (h) { return h.latlngs; }), {
-      pane: "terrain", color: "#93bda1", weight: 9, opacity: 0.18,
+      pane: "terrain", color: "#a9cbb5", weight: 10, opacity: 0.22,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
   /* 皴线合并成一条多段线：上百条短线只花一个 SVG 图元 */
   if ((T.grains || []).length) {
     L.polyline(T.grains, {
-      pane: "terrain", color: "#6f8f7b", weight: 1.1, opacity: 0.3,
+      pane: "terrain", color: "#789581", weight: 1.1, opacity: 0.22,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
   (T.ridges || []).forEach(function (rd) {
     L.polyline(rd.latlngs, {
-      pane: "terrain", color: RIDGE_INK[rd.tone], weight: 1.1, opacity: 0.55,
+      pane: "terrain", color: RIDGE_INK[rd.tone], weight: 1.1, opacity: 0.42,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   });
-  /* 峰脊受光的一条细白线：与墨线一夹，山脊就立起来了 */
+  /* 峰脊受光的一条细白线：与墨线一夹，山脊就立起来了。
+     别太亮——纯白会跟远山的浅色叠成「雪线」。 */
   if ((T.crests || []).length) {
     L.polyline(T.crests, {
-      pane: "terrain", color: "#f9fcf7", weight: 1.7, opacity: 0.5,
+      pane: "terrain", color: "#f2f9ef", weight: 1.6, opacity: 0.32,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
@@ -224,13 +276,15 @@ export function createEngine(mapEl) {
     let defs = "";
     for (let t = 0; t < tones.length; t++) {
       /* 主山：纵向（山巅最亮 → 山腰 → 山阴），末端收进地面。
-         整条山脉就这一个面，所以不存在段与段的接缝。 */
+         整条山脉就这一个面，所以不存在段与段的接缝。
+         收口拉得长一些（.58 起就往下淡），山脚才像化进纸里，
+         而不是一刀切在底色上。 */
       defs += '<linearGradient id="rg' + t + '" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="' + tones[t][2] + '"/>' +
-        '<stop offset="0.34" stop-color="' + tones[t][1] + '"/>' +
-        '<stop offset="0.62" stop-color="' + tones[t][0] + '"/>' +
-        '<stop offset="0.84" stop-color="' + tones[t][0] + '"/>' +
-        '<stop offset="1" stop-color="' + tones[t][0] + '" stop-opacity="0.10"/></linearGradient>';
+        '<stop offset="0.30" stop-color="' + tones[t][1] + '"/>' +
+        '<stop offset="0.58" stop-color="' + tones[t][0] + '"/>' +
+        '<stop offset="0.82" stop-color="' + tones[t][0] + '" stop-opacity="0.5"/>' +
+        '<stop offset="1" stop-color="' + tones[t][0] + '" stop-opacity="0.06"/></linearGradient>';
       /* 远山：整体压淡（纵向：山尖亮、往下渐没入雾） */
       defs += '<linearGradient id="rgf' + t + '" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="' + farTones[t][2] + '"/>' +
@@ -304,7 +358,7 @@ export function createEngine(mapEl) {
     const many = node.poems.length > 1;
     return '<span class="dot-wrap' + (active ? " on" : "") + '">' +
       (active ? '<span class="dot-glow"></span><span class="dot-ring"></span>' : "") +
-      '<span class="dot"></span>' +
+      '<span class="dot' + (many ? " many" : "") + '"></span>' +
       '<span class="dot-name">' + esc(node.name) +
         (many ? '<i class="dot-count">' + node.poems.length + "</i>" : "") +
       "</span>" +
@@ -491,8 +545,16 @@ export function createEngine(mapEl) {
   /* ============================================================
      地图事件
      ============================================================ */
+  /* 缩放分档：地标珠子的大小、地名签的字号都挂在 body 的类上，
+     省得每个 marker 都算一遍（.dot-wrap 里读 --dot 即可） */
+  function syncZoomClasses() {
+    const z = map.getZoom();
+    document.body.classList.toggle("show-prov", z >= 4.0);
+    document.body.classList.toggle("zoom-far", z < 4.6);
+    document.body.classList.toggle("zoom-near", z >= 6.2);
+  }
   map.on("zoomend moveend", function () {
-    document.body.classList.toggle("show-prov", map.getZoom() >= 4.0);
+    syncZoomClasses();
     queueLayout();
     const s = getState();
     if (s.poemListPlaceId) placePoemList(PLACE_BY_ID[s.poemListPlaceId]);
@@ -534,7 +596,7 @@ export function createEngine(mapEl) {
 
   /* 首屏：按当前筛选点亮地标 */
   syncVisibility();
-  document.body.classList.toggle("show-prov", map.getZoom() >= 4.0);
+  syncZoomClasses();
 
   return engine;
 }

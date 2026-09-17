@@ -6,8 +6,6 @@
   out.sidebar = el("#sidebar");
   out.bottomBar = el("#bottomBar");
   out.tools = el("#tools");
-  out.mount = el(".p-mount");
-  out.pine = el(".p-pine");
   out.wave = el(".p-wave");
   out.crane = el(".p-crane");
   var sv = document.querySelector("#sideVerse");

@@ -13,21 +13,24 @@
 export const TERRAIN = (function () {
   "use strict";
 
-  /* 青绿色阶：[山阴, 山腰, 山巅] */
+  /* 青绿色阶：[山阴, 山腰, 山巅]。
+     山巅刻意不用近白——配上「远山」那层浅色，白顶 + 绿身会看成雪帽，
+     在米黄的地面上格外跳。三档都留在青绿里，只靠明度拉开层次。 */
   var TONES = [
-    ["#7ea691", "#a3c3a8", "#cfe2cd"],
-    ["#86ad96", "#aac8ac", "#d4e5cf"],
-    ["#93b89c", "#b4cfb2", "#dae9d4"],
-    ["#8aa891", "#aec6a6", "#d8e5cd"],
+    ["#8dae9c", "#aecab2", "#d4e6d0"],
+    ["#93b4a0", "#b3ceb6", "#d8e8d4"],
+    ["#9cbca7", "#bad3b9", "#ddebd9"],
+    ["#95b1a0", "#b5cfb4", "#d9e8d3"],
   ];
 
-  /* 远山色阶：[山阴, 山腰, 山巅]。空气透视——比主山整体更亮更偏青灰，
-     这样无论它露出多少，都永远"退"在主山之后。 */
+  /* 远山色阶：[山阴, 山腰, 山巅]。空气透视——比主山整体更淡更偏青灰。
+     同样不许偏白：远山是「雾里的山」，不是雪山，色相要跟主山连着，
+     只降饱和、提明度，再由绘制处叠一点透明度让它化进底色。 */
   var FAR_TONES = [
-    ["#cfdfd8", "#dce8e2", "#eaf1ec"],
-    ["#d2e1da", "#dfe9e4", "#ecf2ee"],
-    ["#d6e3dd", "#e2ebe6", "#eef3f0"],
-    ["#d0e0d9", "#dde8e3", "#ebf2ed"],
+    ["#bdd3c7", "#cfdfd4", "#dfeae2"],
+    ["#c0d5ca", "#d2e1d7", "#e2ece5"],
+    ["#c4d8cd", "#d5e3d9", "#e5eee7"],
+    ["#bed4c9", "#d0e0d5", "#e0ebe4"],
   ];
 
   /* 山系：name 名称（同时用于地图标注）；rank 1 主要 / 2 次要（标注优先级）；
@@ -146,6 +149,7 @@ export const TERRAIN = (function () {
         正弦的峰谷都圆润，且一个周期只有一座峰（|sin| 有两座）。 */
       var hump = 0.5 + 0.5 * Math.sin(ph + seed);
       var amp = wl * (0.30 + 0.24 * Math.sin(ph * 0.5 + seed * 2.1)) * taper;
+      if (opt.amp) amp *= opt.amp;              /* 远山的峰压低一点，别盖过主山 */
       var topOff = wl * 0.05 + amp * (0.5 + 0.5 * hump) + sh;
       /* 山脚要平缓：只微微跟着峰谷起伏。若山脚与山脊同相波动，
          整条山脉就成了一条「波浪带」，而不是「一排从山基隆起的峰」。 */
@@ -298,9 +302,10 @@ export const TERRAIN = (function () {
       var seed = i * 2.3 + 1.7;
       var sp = smoothSpine(r.spine, 8);
       /* 远山：同一条脊线，整体北抬、起伏略大，且用另一组种子错开峰谷。
-         它只当「一排山尖」——露在主山脊线之上，其余被主山压住。 */
-      ridgeShape(sp, r.w * 1.12, r.tone, seed + 37.4, out,
-        { far: true, shift: 0.20, botAbs: 0.20 });
+         它只当「一排山尖」——露在主山脊线之上，其余被主山压住。
+         北抬量不宜大：抬得越高，露出的浅色越多，越像另画了一排雪山。 */
+      ridgeShape(sp, r.w * 1.08, r.tone, seed + 37.4, out,
+        { far: true, shift: 0.14, botAbs: 0.20, amp: 0.78 });
       /* 主山：主要山脉才点亮脊，小山不点（否则整图到处是白线） */
       ridgeShape(sp, r.w, r.tone, seed, out,
         { crest: r.rank === 1 && r.w >= 1.5 });
