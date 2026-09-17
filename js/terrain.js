@@ -1,12 +1,14 @@
 /* ============================================================
    山体层（程序生成，全离线）
    ----------------------------------------------------------
-   设计稿里的地图是一张「青绿山水」中国图：淡青绿的省区、墨青的
+   设计稿的地图是一张「青绿山水」中国图：淡青绿的省区、墨青的
    山峦、浅蓝的水系。这里按青绿设色生成山体色阶（山阴偏墨青、
    山巅近白绿），与省区底色同调，靠色相与明暗一起表现山。
 
-   山脉仍由「多个山组」拼接：沿山脊每约 0.9° 摆一组 2×3 座峰，
-   后排偏北（受光、浅）、前排偏南（背光、深），底下压一条山根。
+   山脉不再用散点三角峰，而是按脊线生成「山脊剪影」：沿脊线密
+   采样，顶边用圆润起伏的峰谷模拟山脊，下压一条山脚，闭合为山
+   体；顶边另作一条折线用于「勾线」。填充用纵向渐变（山巅亮、
+   山脚暗并羽化），再靠 terrain 图层的模糊把边缘揉开。
    ============================================================ */
 window.TERRAIN = (function () {
   "use strict";
@@ -45,90 +47,10 @@ window.TERRAIN = (function () {
     { spine: [[24.5, 121.2], [23.6, 120.9], [22.8, 120.7]], w: 1.3, sp: 0.7, tone: 0 },                        // 中央山脉
   ];
 
-  /* 设计稿的地图是干净的浮雕图：不加白雾、不加贴纸式点景 */
   var MIST = [];
-
   var DECOR = [];
 
   function rnd(seed) { return Math.abs(Math.sin(seed * 12.9898) * 43758.5453) % 1; }
-
-  /* ---------- 山体基线：沿脊线的收尖闭合轮廓 ---------- */
-  function ringFromSpine(spine, width, shrink, seed, driftLat, taperPow) {
-    var half = (width * shrink) / 2;
-    var n = spine.length;
-    var pow = taperPow === undefined ? 0.55 : taperPow;
-    var left = [], right = [], i, p, prev, next, dLat, dLng, len, nLat, nLng, w, cos, t, taper, jit;
-
-    for (i = 0; i < n; i++) {
-      p = spine[i];
-      prev = spine[Math.max(0, i - 1)];
-      next = spine[Math.min(n - 1, i + 1)];
-      cos = Math.cos((p[0] * Math.PI) / 180);
-      dLat = next[0] - prev[0];
-      dLng = (next[1] - prev[1]) * cos;
-      len = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
-      nLat = -dLng / len;
-      nLng = dLat / len;
-      t = n > 1 ? i / (n - 1) : 0.5;
-      taper = Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t))), pow);
-      jit = 0.09 * width * taper;
-      w = half * (0.66 + 0.34 * Math.abs(Math.sin(i * 2.7 + seed))) * taper;
-      left.push([
-        p[0] + nLat * w + driftLat * taper + jit * Math.sin(i * 3.1 + seed),
-        p[1] + (nLng * w) / (cos || 1) + (jit * Math.cos(i * 2.3 + seed)) / (cos || 1),
-      ]);
-      right.push([
-        p[0] - nLat * w + driftLat * taper + jit * Math.sin(i * 1.7 + seed),
-        p[1] - (nLng * w) / (cos || 1) + (jit * Math.cos(i * 2.9 + seed)) / (cos || 1),
-      ]);
-    }
-    return left.concat(right.reverse());
-  }
-
-  /* ---------- 一座峰（底边在下，峰尖朝北） ---------- */
-  function peak(lat, lng, baseW, height, skew) {
-    var cos = Math.cos((lat * Math.PI) / 180) || 1;
-    var hw = baseW / 2 / cos;
-    return [
-      [lat + height, lng + skew],
-      [lat - height * 0.22, lng - hw],
-      [lat - height * 0.22, lng + hw],
-    ];
-  }
-
-  /* ---------- 一个山组：沿山脊两列、横向三排，共 6 座峰 ---------- */
-  function groupPeaks(lat, lng, dLat, dLng, w, tone, seed, out) {
-    var cos = Math.cos((lat * Math.PI) / 180) || 1;
-    var uLat = dLat, uLng = dLng;                       // 沿脊方向（单位）
-    var vLat = -dLng / cos, vLng = dLat * cos;          // 横向（单位，近似正交）
-    var vlen = Math.sqrt(vLat * vLat + vLng * vLng) || 1;
-    vLat /= vlen; vLng /= vlen;
-    var gw = w * 0.62;    // 山组沿脊跨度
-    var rows = [
-      { off: 0.36, sc: 0.66, ci: 2, op: 0.62 },   // 后排：远、浅
-      { off: 0.04, sc: 0.88, ci: 1, op: 0.78 },   // 中排
-      { off: -0.30, sc: 1.15, ci: 0, op: 0.9 },   // 前排：近、深、更大
-    ];
-    for (var r = 0; r < rows.length; r++) {
-      var row = rows[r];
-      var cols = 2;
-      for (var c = 0; c < cols; c++) {
-        var u = (cols === 1 ? 0 : (c / (cols - 1) - 0.5)) * gw;
-        var r1 = rnd(seed + r * 3.1 + c * 1.7);
-        var r2 = rnd(seed + r * 5.3 + c * 2.9);
-        /* 峰高约山带宽度的三成，横向略宽，才连得成山脉而不散成碎点 */
-        var bh = w * (0.26 + 0.16 * r1) * row.sc;
-        var bw = w * (0.24 + 0.12 * r2) * row.sc;
-        var clat = lat + uLat * u + vLat * row.off * w + (r1 - 0.5) * w * 0.10;
-        var clng = lng + (uLng * u) / cos + (vLng * row.off * w) / cos + (r2 - 0.5) * (w * 0.10) / cos;
-        out.push({
-          latlngs: peak(clat, clng, bw, bh, (r1 - 0.5) * bw * 0.5 + (r2 - 0.5) * bw * 0.3),
-          color: TONES[tone][row.ci],
-          opacity: row.op,
-        });
-      }
-    }
-  }
 
   /* ---------- 沿脊线累计长度取点 ---------- */
   function spineLength(spine) {
@@ -164,36 +86,60 @@ window.TERRAIN = (function () {
     return { lat: spine[0][0], lng: spine[0][1], dLat: 0, dLng: 1 };
   }
 
+  /* 沿脊线密采样，返回带方向的单位点 */
+  function densify(spine, stepDeg) {
+    var info = spineLength(spine);
+    var m = Math.max(10, Math.round(info.total / stepDeg) + 1);
+    var out = [];
+    for (var k = 0; k < m; k++) {
+      var d = info.total * k / (m - 1);
+      out.push(pointAt(spine, info.segs, d));
+    }
+    return out;
+  }
+
+  /* ---------- 一条山脉：羽化填充的「山脊」剪影 + 脊线勾边 ----------
+     沿脊线生成圆润起伏的顶边（山峰），下压一条山脚，闭合为山体；
+     顶边另作一条折线用于「勾线」。填充靠纵向渐变 + pane 模糊羽化。 */
+  function ridgeShape(spine, width, tone, seed, sils, ridges) {
+    var pts = densify(spine, 0.24);
+    var n = pts.length;
+    if (n < 4) return;
+    var peakN = Math.max(3, Math.round(spineLength(spine).total / 0.55));
+    var top = [], bottom = [];
+    for (var i = 0; i < n; i++) {
+      var p = pts[i];
+      var cos = Math.cos((p.lat * Math.PI) / 180) || 1;
+      var vLat = -p.dLng / cos, vLng = p.dLat * cos;
+      var vl = Math.sqrt(vLat * vLat + vLng * vLng) || 1;
+      vLat /= vl; vLng /= vl;
+      /* 山峰统一朝北（地图上方）起，山脊走向更一致 */
+      if (vLat < 0) { vLat = -vLat; vLng = -vLng; }
+      var t = n > 1 ? i / (n - 1) : 0.5;
+      var taper = Math.pow(Math.sin(Math.PI * t), 0.7);            // 两端收尖
+      var ph = (i / (n - 1)) * peakN * Math.PI;
+      var r1 = rnd(seed + i * 0.7);
+      var hump = Math.pow(Math.abs(Math.sin(ph + seed)), 0.62);    // 圆润的山峰
+      var amp = width * (0.30 + 0.24 * Math.sin(ph * 0.5 + seed * 2.1)) * taper;
+      var topOff = width * 0.05 + amp * (0.5 + 0.5 * hump);
+      var botOff = width * 0.46 * (0.42 + 0.58 * taper);
+      top.push([p.lat + vLat * topOff, p.lng + (vLng * topOff) / cos]);
+      bottom.push([p.lat - vLat * botOff, p.lng - (vLng * botOff) / cos]);
+    }
+    sils.push({ latlngs: top.concat(bottom.reverse()), tone: tone });
+    ridges.push({ latlngs: top, tone: tone });
+  }
+
   function build() {
-    var masses = [], peaks = [], crests = [], mist = [], i, k, r;
+    var sils = [], ridges = [], i, r;
 
     for (i = 0; i < RANGES.length; i++) {
       r = RANGES[i];
-      var info = spineLength(r.spine);
-      // 山根：用山阴色压出山脉的「躯体」，上浅下深才有体积
-      masses.push({
-        latlngs: ringFromSpine(r.spine, r.w * 0.88, 0.95, i * 1.3, 0.05 * r.w),
-        color: TONES[r.tone][0],
-        opacity: 0.42,
-      });
-      // 沿脊线**密集**拼接山组：间距小于山组自身宽度，才能连成山脉而非孤立小峰
-      var n = Math.max(2, Math.round(info.total / (r.sp * 1.05)) + 1);
-      for (k = 0; k < n; k++) {
-        var d = (info.total * (k + 0.5)) / n;
-        var p = pointAt(r.spine, info.segs, d);
-        groupPeaks(p.lat, p.lng, p.dLat, p.dLng, r.w, r.tone, i * 7.7 + k * 2.3, peaks);
-      }
-      crests.push({
-        latlngs: r.spine.map(function (q) { return [q[0] + 0.12 * r.w, q[1]]; }),
-      });
+      ridgeShape(r.spine, r.w, r.tone, i * 2.3 + 1.7, sils, ridges);
     }
 
-    for (i = 0; i < MIST.length; i++) {
-      mist.push({ latlngs: ringFromSpine(MIST[i].spine, MIST[i].w, 1, i * 2.1, 0, 0.28) });
-    }
-
-    return { masses: masses, peaks: peaks, crests: crests, mist: mist, decor: DECOR };
+    return { sils: sils, ridges: ridges, mist: [], decor: [] };
   }
 
-  return { build: build, ranges: RANGES };
+  return { build: build, ranges: RANGES, tones: TONES };
 })();

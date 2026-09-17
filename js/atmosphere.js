@@ -19,7 +19,7 @@ window.ATMOSPHERE = (function () {
   var halfW = 700, halfH = 400;
   var pointer = { x: 0, y: 0 }, cameraAt = { x: 0, y: 0 }, camWant = { x: 0, y: 0 };
   var shift = { x: 0, y: 0 }, shiftAt = { x: 0, y: 0 };
-  var reduce = false, quality = 1, mode = "full";
+  var reduce = false, quality = 1, mode = "full", density = 1;
 
   /* ---------------- 纹理（Canvas 生成） ---------------- */
   function cv(size) {
@@ -227,7 +227,17 @@ window.ATMOSPHERE = (function () {
   }
 
   /* ---------------- 主循环 ---------------- */
-  function tick() {
+  /* 限帧：云气是「慢动作」，30fps 与 144fps 肉眼分不出，
+     但高刷屏上按刷新率重绘＝每秒白白重绘整屏 120~144 次。
+     这是长时间挂机发烫、拖动时掉帧的主因，故按时长闸门限帧。 */
+  var FPS_CAP = 30, minStep = 1000 / FPS_CAP, lastAt = 0;
+
+  function tick(now) {
+    if (!running) return;
+    raf = requestAnimationFrame(tick);
+    if (now - lastAt < minStep - 1) return;
+    lastAt = now;
+
     var dt = Math.min(clock.getDelta(), 0.05);
     var t = clock.elapsedTime;
     var i, it, s;
@@ -298,12 +308,12 @@ window.ATMOSPHERE = (function () {
     camera.position.y = cameraAt.y;
 
     renderer.render(scene, camera);
-    if (running) raf = requestAnimationFrame(tick);
   }
 
   function start() {
-    if (!api.ok || running) return;
+    if (!api.ok || running || document.hidden) return;
     running = true;
+    lastAt = 0;
     clock.getDelta();
     raf = requestAnimationFrame(tick);
   }
@@ -334,7 +344,8 @@ window.ATMOSPHERE = (function () {
     canvas = renderer.domElement;
     canvas.className = "atmosphere-canvas";
     renderer.setClearAlpha(0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    /* 全屏透明画布，像素比 1.6 → 1.25：填充率省 ~40%，云气这种虚化层看不出差别 */
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     (options.layer || document.body).appendChild(canvas);
 
     scene = new THREE.Scene();
@@ -407,8 +418,31 @@ window.ATMOSPHERE = (function () {
     api.ok = false;
   };
 
+  /* 按比例抽稀：弱机降载用，不重建场景，只切 visible */
+  api.setDensity = function (frac) {
+    frac = Math.max(0.1, Math.min(1, Number(frac) || 1));
+    var step = 1 / frac;
+    var shown = 0;
+    items.forEach(function (it, i) {
+      it.sprite.visible = (i % step) < 1;
+      if (it.sprite.visible) shown++;
+    });
+    density = frac;
+    return api;
+  };
+
+  api.setFps = function (fps) {
+    FPS_CAP = Math.max(10, Math.min(120, Number(fps) || 30));
+    minStep = 1000 / FPS_CAP;
+    return api;
+  };
+
   api.stats = function () {
-    return { ok: api.ok, enabled: api.enabled, running: running, sprites: items.length + pulses.length, quality: quality, reason: api.reason };
+    return {
+      ok: api.ok, enabled: api.enabled, running: running,
+      sprites: items.filter(function (it) { return it.sprite.visible; }).length + pulses.length,
+      total: items.length, density: density, fpsCap: FPS_CAP, quality: quality, reason: api.reason,
+    };
   };
 
   return api;

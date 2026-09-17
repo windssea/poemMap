@@ -67,13 +67,10 @@ window.MOTION = (function () {
         .fromTo(".chipbar", { opacity: 0, y: -8 },
                   { opacity: 1, y: 0, duration: 0.5 }, 0.5);
 
-      // 左侧篇目栏：整体浮入，篇目行依次
-      tl.fromTo("#sidebar", { opacity: 0, x: -22 },
-                  { opacity: 1, x: 0, duration: 0.62 }, 0.24)
-        .fromTo("#sidebar .item", { opacity: 0, x: -14 },
-                  { opacity: 1, x: 0, duration: 0.4, stagger: 0.02 }, 0.5);
+      // 左侧篇目栏：默认收起（收在左下 dock 的「篇目」按钮里），开场不揭示；
+      // 展开时的篇目行依次浮现由 side-in 处理（见篇目栏开关）。
 
-      // 左下统计胶囊
+      // 左下统计胶囊（含「篇目」开关）
       tl.fromTo("#bottomBar", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6 }, 0.7);
 
       // 右缘题词 · 罗盘 · 缩放
@@ -137,6 +134,23 @@ window.MOTION = (function () {
       {
         x: 0, opacity: 1, duration: 0.36, ease: "power2.out",
         stagger: 0.02, clearProps: "opacity,transform",
+      });
+  };
+
+  /* ---------------- 篇目栏展开：面板由 CSS 滑入，行依次浮现 ---------------- */
+  api.sideIn = function () {
+    if (!api.on) return;
+    var side = document.querySelector("#sidebar");
+    if (!side) return;
+    var items = side.querySelectorAll(".item");
+    if (!items.length) return;
+    var head = Array.prototype.slice.call(items, 0, 30);
+    g().killTweensOf(head);
+    g().fromTo(head,
+      { x: -14, opacity: 0 },
+      {
+        x: 0, opacity: 1, duration: 0.38, ease: "power2.out",
+        delay: 0.06, stagger: 0.02, clearProps: "opacity,transform",
       });
   };
 

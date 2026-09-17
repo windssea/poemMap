@@ -65,6 +65,27 @@
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
   function narrow() { return window.matchMedia("(max-width: 820px)").matches; }
+
+  /* Catmull-Rom 重采样：把稀疏折线加密成平滑曲线 */
+  function smoothPath(pts, seg) {
+    if (!pts || pts.length < 3) return pts;
+    var out = [], n = pts.length;
+    for (var i = 0; i < n - 1; i++) {
+      var p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
+      for (var j = 0; j < seg; j++) {
+        var t = j / seg, t2 = t * t, t3 = t2 * t;
+        var lat = 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t +
+          (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+          (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+        var lng = 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t +
+          (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+          (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+        out.push([lat, lng]);
+      }
+    }
+    out.push(pts[n - 1]);
+    return out;
+  }
   var toastTimer = 0;
   function toast(msg, ms) {
     var el = $("#toast");
@@ -153,52 +174,155 @@
   });
   window.__map = map;
 
-  /* 图层次序即画法：省区底色 → 山体 → 水系 → 国境 → 地名 */
-  var PANE_Z = { prov: 400, terrain: 410, hydro: 418, border: 430, geoLabels: 470 };
+  /* 图层次序即画法：省区底色 → 山体 → 水系 → 长城 → 国境 → 地名 */
+  var PANE_Z = { prov: 400, terrain: 410, hydro: 418, wall: 425, border: 430, geoLabels: 470 };
   Object.keys(PANE_Z).forEach(function (name) {
     map.createPane(name);
     map.getPane(name).style.zIndex = PANE_Z[name];
   });
   map.getPane("geoLabels").style.pointerEvents = "none";
-  map.getPane("terrain").style.filter = "blur(1.1px)";
+  map.getPane("terrain").style.pointerEvents = "none";
+  map.getPane("wall").style.pointerEvents = "none";
+  /* 羽化不用 CSS blur：整屏 SVG 挂着实时滤镜，每次缩放都要重新光栅化，
+     是拖动/缩放卡顿的主因之一。改为「几何羽化」——省区靠径向渐变的柔过渡，
+     山体靠同色柔边描边 + 纵向渐变收尾，观感接近而开销归零。 */
 
   var feats = CHINA.features || [];
   var provinces = feats.filter(function (f) { return f.properties.level === "province"; });
   var country = feats.filter(function (f) { return f.properties.level === "country"; });
 
+  /* 省区轮廓抽稀（Douglas–Peucker）。
+     缩放的代价与点数成正比：每次 zoom 都要把每个点重投影一遍、重写 path 的 d，
+     原始数据 24950 点 / 329 环。省区只是「晕染色块」（径向渐变 + 无描边细节），
+     按 0.05° 容差抽稀后点数减半以上，肉眼无差，缩放明显更跟手。 */
+  function simplifyRing(ring, tol) {
+    var n = ring.length;
+    if (n < 8) return ring;
+    var keep = new Uint8Array(n);
+    keep[0] = keep[n - 1] = 1;
+    var stack = [0, n - 1];
+    var tol2 = tol * tol;
+    while (stack.length) {
+      var b = stack.pop(), a = stack.pop();
+      var ax = ring[a][0], ay = ring[a][1];
+      var dx = ring[b][0] - ax, dy = ring[b][1] - ay;
+      var dd = dx * dx + dy * dy, best = -1, bi = -1;
+      for (var i = a + 1; i < b; i++) {
+        var px = ring[i][0] - ax, py = ring[i][1] - ay;
+        var t = dd ? (px * dx + py * dy) / dd : 0;
+        if (t < 0) t = 0; else if (t > 1) t = 1;
+        var qx = px - dx * t, qy = py - dy * t;
+        var d2 = qx * qx + qy * qy;
+        if (d2 > best) { best = d2; bi = i; }
+      }
+      if (best > tol2) { keep[bi] = 1; stack.push(a, bi, bi, b); }
+    }
+    var out = [];
+    for (var k = 0; k < n; k++) if (keep[k]) out.push(ring[k]);
+    return out.length > 3 ? out : ring;
+  }
+  function simplifyProvince(f) {
+    var g = f.geometry;
+    if (!g || !g.coordinates) return f;
+    var polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    var outPolys = polys.map(function (poly) {
+      return poly.map(function (ring) { return simplifyRing(ring, 0.05); });
+    });
+    return {
+      type: f.type,
+      properties: f.properties,
+      geometry: {
+        type: g.type,
+        coordinates: g.type === "Polygon" ? outPolys[0] : outPolys,
+      },
+    };
+  }
+  function countPts(list) {
+    var n = 0;
+    list.forEach(function (f) {
+      var g = f.geometry;
+      if (!g || !g.coordinates) return;
+      var polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+      polys.forEach(function (p) { p.forEach(function (r) { n += r.length; }); });
+    });
+    return n;
+  }
+  var rawProvPts = countPts(provinces);
+  provinces = provinces.map(simplifyProvince);
+  /* 诊断钩子：tools/qa-perf.js 可读，确认抽稀比例 */
+  window.__geoStats = {
+    rawPoints: rawProvPts,
+    keptPoints: countPts(provinces),
+    ratio: +(countPts(provinces) / rawProvPts).toFixed(3),
+  };
+
   L.geoJSON(provinces, {
     pane: "prov",
     style: function (f) {
-      var name = f.properties.name;
-      var pair = PROV_FIX[name] || TINTS[REGION[name] || "其他"] || TINTS["其他"];
       return {
-        fillColor: pair[f.properties.adcode % 2],
+        fillColor: "url(#pg" + f.properties.adcode + ")",
         fillOpacity: 1,
         color: "#bcc0a6",
-        weight: 0.9,
-        opacity: 0.85,
+        weight: 1,
+        opacity: 0.5,          // 省界只留一线淡痕，柔和的过渡交给径向渐变
         lineJoin: "round",
       };
     },
   }).addTo(map);
 
-  var T = window.TERRAIN ? window.TERRAIN.build() : { masses: [], peaks: [], crests: [], mist: [], decor: [] };
-  (T.masses || []).forEach(function (m) {
-    L.polygon(m.latlngs, {
-      pane: "terrain", stroke: false, fillColor: m.color, fillOpacity: m.opacity * 0.5,
-      lineJoin: "round", interactive: false,
+  /* 每省注入不规则径向渐变（中心亮、边缘暗、中心位置带抖动），再靠 pane 模糊晕开 */
+  (function injectProvGradients() {
+    var defs = "";
+    provinces.forEach(function (f) {
+      var ad = f.properties.adcode;
+      var name = f.properties.name;
+      var pair = PROV_FIX[name] || TINTS[REGION[name] || "其他"] || TINTS["其他"];
+      var jx = ((ad * 37) % 60 + 20) / 100;
+      var jy = ((ad * 53) % 60 + 18) / 100;
+      defs += '<radialGradient id="pg' + ad + '" cx="' + jx.toFixed(2) + '" cy="' + jy.toFixed(2) +
+        '" r="0.78"><stop offset="0" stop-color="' + pair[0] + '"/><stop offset="1" stop-color="' + pair[1] + '"/></radialGradient>';
+    });
+    var svg = map.getPane("prov").querySelector("svg");
+    if (svg) svg.insertAdjacentHTML("afterbegin", "<defs>" + defs + "</defs>");
+  })();
+
+  var T = window.TERRAIN ? window.TERRAIN.build() : { sils: [], ridges: [], mist: [], decor: [] };
+
+  /* 山体：羽化填充的山脊剪影 + 脊线勾边 */
+  var RIDGE_INK = ["#5f7d68", "#66886f", "#6b8f74", "#647e6c"];
+  var RIDGE_HAZE = ["#8cb69c", "#93bda1", "#a1c4a6", "#98b8a0"];   // 同色系柔边，代替 blur 做羽化
+  (T.sils || []).forEach(function (s) {
+    L.polygon(s.latlngs, {
+      pane: "terrain", lineJoin: "round", lineCap: "round", interactive: false,
+      fillColor: "url(#rg" + s.tone + ")", fillOpacity: 1,
+      color: RIDGE_HAZE[s.tone], weight: 7, opacity: 0.17,   // 一圈同色柔边
     }).addTo(map);
   });
-  (T.peaks || []).forEach(function (pk) {
-    L.polygon(pk.latlngs, {
-      pane: "terrain", stroke: false, fillColor: pk.color, fillOpacity: pk.opacity * 0.56, interactive: false,
+  (T.ridges || []).forEach(function (rd) {
+    L.polyline(rd.latlngs, {
+      pane: "terrain", color: RIDGE_INK[rd.tone], weight: 1.1, opacity: 0.55,
+      lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   });
-  (T.crests || []).forEach(function (c) {
-    L.polyline(c.latlngs, {
-      pane: "terrain", color: "#8fa894", weight: 1, opacity: 0.18, interactive: false,
-    }).addTo(map);
-  });
+
+  /* 山体填充用的纵向渐变（山巅亮、山脚暗并羽化） */
+  (function injectTerrainGradients() {
+    var tones = (window.TERRAIN && window.TERRAIN.tones) || [
+      ["#7ea691", "#a3c3a8", "#cfe2cd"],
+      ["#86ad96", "#aac8ac", "#d4e5cf"],
+      ["#93b89c", "#b4cfb2", "#dae9d4"],
+      ["#8aa891", "#aec6a6", "#d8e5cd"],
+    ];
+    var defs = "";
+    for (var t = 0; t < tones.length; t++) {
+      defs += '<linearGradient id="rg' + t + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="' + tones[t][2] + '"/>' +
+        '<stop offset="0.55" stop-color="' + tones[t][1] + '"/>' +
+        '<stop offset="1" stop-color="' + tones[t][0] + '" stop-opacity="0.14"/></linearGradient>';
+    }
+    var svg = map.getPane("terrain").querySelector("svg");
+    if (svg) svg.insertAdjacentHTML("afterbegin", "<defs>" + defs + "</defs>");
+  })();
 
   L.geoJSON(country, {
     pane: "border",
@@ -206,19 +330,18 @@
   }).addTo(map);
 
   EXTRAS.rivers.forEach(function (r) {
-    L.polyline(r.pts, {
-      pane: "hydro", color: "#8fb6c9", weight: 1.7, opacity: 0.82, lineCap: "round", lineJoin: "round",
-    }).addTo(map);
+    var pts = smoothPath(r.pts, 7);
+    L.polyline(pts, { pane: "hydro", color: "#8fb6c9", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(pts, { pane: "hydro", color: "#5f9fb8", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   });
   if (EXTRAS.canal) {
-    L.polyline(EXTRAS.canal.pts, {
-      pane: "hydro", color: "#9dc0cb", weight: 1.2, opacity: 0.6, lineCap: "round", dashArray: "4 4",
-    }).addTo(map);
+    var cpts = smoothPath(EXTRAS.canal.pts, 7);
+    L.polyline(cpts, { pane: "hydro", color: "#9dc0cb", weight: 1.1, opacity: 0.6, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
   if (EXTRAS.wall) {
-    L.polyline(EXTRAS.wall.pts, {
-      pane: "hydro", color: "#c2b696", weight: 1.5, opacity: 0.6, lineCap: "round", dashArray: "1 6",
-    }).addTo(map);
+    var wpts = smoothPath(EXTRAS.wall.pts, 6);
+    L.polyline(wpts, { pane: "wall", color: "#d98b5f", weight: 5, opacity: 0.22, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(wpts, { pane: "wall", color: "#b8472e", weight: 2.4, opacity: 0.92, dashArray: "2 5", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
 
   EXTRAS.labels.forEach(function (lb) {
@@ -244,7 +367,8 @@
   var CHINA_BOUNDS = L.latLngBounds([[17.4, 72.5], [54.2, 135.8]]);
   function fitChina() {
     var side = $("#sidebar");
-    var padLeft = narrow() ? 18 : (side.offsetWidth + 20 + 18);
+    var sideOpen = document.body.classList.contains("side-open");
+    var padLeft = narrow() ? 18 : (sideOpen ? side.offsetWidth + 38 : 18);
     map.fitBounds(CHINA_BOUNDS, {
       paddingTopLeft: [padLeft, narrow() ? 128 : 118],
       paddingBottomRight: [narrow() ? 18 : 100, narrow() ? 88 : 86],
@@ -278,7 +402,8 @@
     n.marker = L.marker([n.lat, n.lng], { keyboard: false, riseOnHover: true, icon: nodeIcon(n, false) });
     n.marker.on("click", function (e) {
       L.DomEvent.stopPropagation(e);
-      openCard(n);
+      if (n.poems.length > 1) openPoemList(n);
+      else openCard(n);
     });
   });
 
@@ -328,6 +453,9 @@
     });
   }
 
+  /* 诊断钩子：tools/qa-perf.js 直接量避让开销 */
+  window.__layout = layoutLabels;
+
   function setActive(node) {
     PLACES.forEach(function (n) {
       var want = !!node && n.id === node.id;
@@ -342,40 +470,41 @@
   map.on("zoomend moveend", function () {
     document.body.classList.toggle("show-prov", map.getZoom() >= 4.0);
     queueLayout();
+    if (poemList && poemList.classList.contains("on")) placePoemList(PLACE_BY_ID[state.activeId]);
   });
   map.on("move zoom", queueLayout);
-  map.on("click", hideCard);
+  /* 点地图空白：卡片、磨砂浮层、右侧详情抽屉一并收起 */
+  map.on("click", function () { hideCard(); hidePoemList(); closeDetail(); });
 
   /* ══════════ 五、中央诗词卡 ══════════ */
   var card = $("#card");
 
-  function placeCard(node) {
-    if (narrow()) return;   // 窄屏由 CSS 固定
-    var pt = map.latLngToContainerPoint([node.lat, node.lng]);
+  /* 诗词卡居中：不再跟随地标，而是摆在「地图可视区」正中
+     （可视区＝篇目栏右侧 → 屏幕右缘；上下让开工具条与底栏） */
+  function placeCard() {
+    if (narrow()) {           // 窄屏由 CSS 贴底，别写内联定位
+      card.style.left = ""; card.style.top = "";
+      return;
+    }
     var w = card.offsetWidth, h = card.offsetHeight;
-    var side = $("#sidebar");
-    var minLeft = side.offsetWidth + 18 + 16;
-    var maxRight = window.innerWidth - 116;
+    var sideOpen = document.body.classList.contains("side-open");
+    var boxL = sideOpen ? $("#sidebar").offsetWidth + 34 : 18;
+    var boxR = window.innerWidth - 24;
+    var boxT = 84;
+    var boxB = window.innerHeight - 24;
 
-    var left = pt.x + 30;
-    if (left + w > maxRight) left = pt.x - w - 30;
-    left = Math.max(minLeft, Math.min(left, maxRight - w));
-
-    var top = pt.y - h * 0.58;
-    top = Math.max(96, Math.min(top, window.innerHeight - h - 92));
+    var left = boxL + (boxR - boxL - w) / 2;
+    left = Math.max(boxL, Math.min(left, boxR - w));      // 卡比可视区宽时靠左
+    var top = boxT + (boxB - boxT - h) / 2;
+    top = Math.max(boxT, Math.min(top, boxB - h));
     card.style.left = Math.round(left) + "px";
     card.style.top = Math.round(top) + "px";
   }
 
   function renderCardPoem(p) {
     var el = $("#cardPoem");
-    var maxLen = 0;
-    p.lines.forEach(function (l) {
-      var n = l.replace(/[，。？！、；：·「」《》\s]/g, "").length;
-      if (n > maxLen) maxLen = n;
-    });
-    var horiz = p.lines.length > 6 || maxLen > 14;
-    el.className = "c-poem" + (horiz ? " horiz" : "");
+    // 全部诗词一律竖排（从右到左）
+    el.className = "c-poem";
     el.innerHTML = p.lines.map(function (l) { return '<span class="col">' + esc(l) + "</span>"; }).join("");
   }
 
@@ -383,17 +512,14 @@
     var box = $("#cardOthers");
     var rest = node.poems.filter(function (q) { return q.id !== cur.id; });
     if (!rest.length) { box.hidden = true; box.innerHTML = ""; return; }
-    var head = '<em>此处另有 ' + rest.length + " 首：</em>";
-    box.innerHTML = head + rest.slice(0, 5).map(function (q) {
-      return '<button type="button" data-id="' + q.id + '" title="' + esc(q.dynasty + " · " + q.author) + '">' +
-        esc(q.title) + "</button>";
-    }).join("") + (rest.length > 5 ? "<em>…</em>" : "");
+    box.innerHTML = '<button type="button" class="others-more" data-act="list">此处另有 ' + rest.length + " 首 ›</button>";
     box.hidden = false;
   }
 
   function openCard(node, poemId) {
     state.activeId = node.id;
     setActive(node);
+    hidePoemList();
     var p = (poemId && POEM_BY_ID[poemId]) || node.poems[0];
     state.openId = p.id;
 
@@ -421,10 +547,16 @@
     card.setAttribute("aria-hidden", "true");
     setActive(null);
     state.activeId = null;
+    hidePoemList();
   }
 
   $("#cardClose").addEventListener("click", hideCard);
   $("#cardOthers").addEventListener("click", function (e) {
+    if (e.target.closest('[data-act="list"]')) {
+      var node = PLACE_BY_ID[state.activeId];
+      if (node) openPoemList(node);
+      return;
+    }
     var btn = e.target.closest("button[data-id]");
     if (!btn) return;
     var node = PLACE_BY_ID[state.activeId];
@@ -432,6 +564,60 @@
   });
   $("#cardMore").addEventListener("click", function () {
     if (state.openId) openDetail(state.openId);
+  });
+
+  /* ══════════ 五·五、多地诗词：磨砂浮层列表 ══════════ */
+  var poemList = $("#poemList");
+
+  function placePoemList(node) {
+    var w = poemList.offsetWidth, h = poemList.offsetHeight;
+    if (narrow()) {
+      poemList.style.left = "14px"; poemList.style.right = "14px";
+      poemList.style.top = "auto"; poemList.style.bottom = "64px";
+      return;
+    }
+    var pt = map.latLngToContainerPoint([node.lat, node.lng]);
+    var left = pt.x + 22;
+    if (left + w > window.innerWidth - 16) left = pt.x - w - 22;
+    left = Math.max(16, Math.min(left, window.innerWidth - w - 16));
+    var top = pt.y - 24;
+    top = Math.max(96, Math.min(top, window.innerHeight - h - 16));
+    poemList.style.left = Math.round(left) + "px";
+    poemList.style.top = Math.round(top) + "px";
+    poemList.style.right = "auto"; poemList.style.bottom = "auto";
+  }
+
+  function openPoemList(node) {
+    state.activeId = node.id;
+    setActive(node);
+    var items = node.poems.map(function (p) {
+      return '<button type="button" class="pl-item' + (state.openId === p.id ? " on" : "") + '" data-id="' + p.id + '">' +
+        '<span class="pl-t">' + esc(p.title) + "</span>" +
+        '<span class="pl-m">' + p.dynasty + " · " + esc(p.author) + "</span>" +
+      "</button>";
+    }).join("");
+    poemList.innerHTML = '<div class="pl-head">' + esc(node.region + "（" + node.name + "）") +
+      '<span class="pl-n">' + node.poems.length + " 首</span></div>" + items;
+    poemList.setAttribute("aria-hidden", "false");
+    poemList.classList.add("on");
+    placePoemList(node);
+    if (window.MOTION && window.MOTION.on) window.MOTION.cardIn(poemList);
+  }
+
+  function hidePoemList() {
+    if (!poemList) return;
+    poemList.classList.remove("on");
+    poemList.setAttribute("aria-hidden", "true");
+  }
+
+  poemList.addEventListener("click", function (e) {
+    var more = e.target.closest('[data-act="list"]');
+    if (more) { var nn = PLACE_BY_ID[state.activeId]; if (nn) openPoemList(nn); return; }
+    var btn = e.target.closest(".pl-item");
+    if (!btn) return;
+    var node = PLACE_BY_ID[state.activeId];
+    hidePoemList();
+    if (node) openCard(node, btn.dataset.id);
   });
 
   /* ══════════ 六、详情面板 ══════════ */
@@ -448,14 +634,9 @@
     $("#dTitle").textContent = p.title;
     $("#dSub").textContent = p.dynasty + " · " + p.author;
 
-    var maxLen = 1;
-    p.lines.forEach(function (l) {
-      var n = l.replace(/[，。？！、；：·「」《》\s]/g, "").length;
-      if (n > maxLen) maxLen = n;
-    });
-    var horiz = p.lines.length > 20 || maxLen > 16;
+    // 全部诗词一律竖排（从右到左）
     var poem = $("#dPoem");
-    poem.className = "d-poem" + (horiz ? " horiz" : "");
+    poem.className = "d-poem";
     poem.innerHTML = p.lines.map(function (l) { return '<span class="line">' + esc(l) + "</span>"; }).join("");
 
     var pro = $("#dPrologue");
@@ -482,11 +663,9 @@
     detail.classList.add("on");
     detail.setAttribute("aria-hidden", "false");
     $(".detail-body", detail).scrollTop = 0;
-    if (node) {
-      /* 卡片若已打开，切成这一首；未打开则不动 */
-      if (card.classList.contains("on")) openCard(node, id);
-      else setActive(node);
-    }
+    /* 查看详情时自动关闭弹出的诗词卡片 */
+    hideCard();
+    if (node) setActive(node);
     markListOn(id);
     if (window.MOTION && window.MOTION.on) window.MOTION.cardIn(detail);
     if (location.hash !== "#/p/" + id) history.replaceState(null, "", "#/p/" + id);
@@ -837,17 +1016,24 @@
   $("#zoomOut").addEventListener("click", function () { map.zoomOut(0.5); });
 
   var sideToggle = $("#sideToggle");
-  function closeSide() { document.body.classList.remove("side-open"); sideToggle.setAttribute("aria-expanded", "false"); }
+  function closeSide() {
+    document.body.classList.remove("side-open");
+    sideToggle.setAttribute("aria-expanded", "false");
+    if (state.activeId) placeCard();     // 可视区变宽，卡片重新居中
+  }
   sideToggle.addEventListener("click", function () {
     var open = !document.body.classList.contains("side-open");
     document.body.classList.toggle("side-open", open);
     sideToggle.setAttribute("aria-expanded", String(open));
+    if (open && window.MOTION && window.MOTION.sideIn) window.MOTION.sideIn();
+    if (state.activeId) placeCard();     // 篇目栏占掉左侧，卡片在剩余区域居中
   });
 
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     if (!menuPop.hidden) { closeMenu(); return; }
     if (document.body.classList.contains("side-open")) { closeSide(); return; }
+    if (poemList && poemList.classList.contains("on")) { hidePoemList(); return; }
     if (detail.classList.contains("on")) { closeDetail(); return; }
     if (panel.classList.contains("on")) { closePanel(); return; }
     if (card.classList.contains("on")) { hideCard(); }
@@ -859,10 +1045,43 @@
     rt = setTimeout(function () {
       map.invalidateSize();
       fitChina();
-      if (state.activeId) placeCard(PLACE_BY_ID[state.activeId]);
+      if (state.activeId) placeCard();
       if (!narrow()) closeSide();
     }, 220);
   });
+
+  /* ══════════ 十二·五、自适应降载 ══════════
+     云气层会持续重绘整屏。弱机/集显上先抽稀粒子，仍不达标就整层关掉，
+     用户不必自己去菜单里找「动效」开关。 */
+  function perfGuard() {
+    if (!window.ATMOSPHERE || !window.ATMOSPHERE.ok) return;
+    if (window.MOTION && !window.MOTION.on) return;       // 动效已关，没有负载
+
+    function sample(dur, cb) {
+      var t0 = 0, last = 0, n = 0, sum = 0;
+      requestAnimationFrame(function step(now) {
+        if (!t0) { t0 = last = now; }
+        else { if (n > 4) sum += now - last; last = now; }
+        n++;
+        if (now - t0 < dur) requestAnimationFrame(step);
+        else cb(sum / Math.max(1, n - 6));
+      });
+    }
+    function report(ms, level) {
+      window.__perf = { msPerFrame: +ms.toFixed(2), level: level };
+    }
+
+    sample(2200, function (a1) {
+      if (a1 <= 27) { report(a1, "full"); return; }        // ≥ ~37fps，够用
+      window.ATMOSPHERE.setDensity(0.45);
+      sample(1800, function (a2) {
+        if (a2 <= 30) { report(a2, "reduced"); return; }
+        window.ATMOSPHERE.setEnabled(false);
+        report(a2, "off");
+        toast("为保流畅已收起云气（菜单「动效」可恢复）", 4200);
+      });
+    });
+  }
 
   /* ══════════ 十二、启动 ══════════ */
   var nTang = 0, nSong = 0;
@@ -882,6 +1101,7 @@
     window.ATMOSPHERE.setEnabled(!!(window.MOTION && window.MOTION.on));
   }
   $("#motionState").textContent = window.MOTION && window.MOTION.on ? "开" : "关";
+  perfGuard();
 
   if (window.MOTION && window.MOTION.on) {
     var elPoems = $("#statPoems"), elPlaces = $("#statPlaces");

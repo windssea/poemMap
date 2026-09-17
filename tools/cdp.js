@@ -88,7 +88,8 @@ async function main() {
     "--disable-extensions", "--disable-background-networking",
     "--window-size=1440,900",
     "--enable-unsafe-swiftshader",
-    "--hide-scrollbars",
+    // 无头默认隐藏滚动条（截图干净）。要量「滚动条占位」时用 CDP_SCROLLBARS=1。
+    ...(process.env.CDP_SCROLLBARS ? [] : ["--hide-scrollbars"]),
     "about:blank",
   ], { stdio: "ignore" });
 
@@ -122,6 +123,14 @@ async function main() {
       });
     }
 
+    // CDP_INJECT=<文件>：在每个新文档的最前面注入脚本——量「首帧起」的布局时序
+    // （React 提交与动画的中间态只有从第 0 帧开始采样才看得到）。
+    if (process.env.CDP_INJECT) {
+      await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: fs.readFileSync(process.env.CDP_INJECT, "utf8"),
+      });
+    }
+
     await cdp.send("Page.navigate", { url });
 
     // 等 load 事件，或等到超时
@@ -146,12 +155,35 @@ async function main() {
     }
 
     // 取数或截图之前，可先跑一段准备脚本（例如先打开某首诗、先点开注释）
+    // CDP_SETUP 支持逗号分隔的多个文件，按顺序执行——React 的渲染是异步的，
+    // 「点地标 → 等一帧 → 浮层里挑一首」这类多步操作这样写才准。
+    // CDP_STEP_ARG 按同样的顺序给每步传参；文件名以 _ 开头的（公共工具）不占位。
     if (process.env.CDP_SETUP) {
-      const setup = fs.readFileSync(process.env.CDP_SETUP, "utf8");
-      await cdp.send("Runtime.evaluate", {
-        expression: setup, returnByValue: true, awaitPromise: true,
+      const files = process.env.CDP_SETUP.split(",").map((s) => s.trim()).filter(Boolean);
+      const args = String(process.env.CDP_STEP_ARG || "").split(",");
+      let slot = 0;
+      for (const f of files) {
+        const takesArg = !path.basename(f).startsWith("_");
+        const arg = takesArg ? (args[slot++] || "") : "";
+        const setup = "window.__stepArg = " + JSON.stringify(arg) + ";\n" +
+          fs.readFileSync(f, "utf8");
+        const r = await cdp.send("Runtime.evaluate", {
+          expression: setup, returnByValue: true, awaitPromise: true,
+        });
+        if (process.env.CDP_VERBOSE) {
+          const v = r.result && r.result.value;
+          if (v !== undefined) console.error("SETUP " + f + " -> " + JSON.stringify(v));
+        }
+        await sleep(Number(process.env.CDP_SETUP_WAIT || 400));
+      }
+    }
+
+    // CDP_TRACE=1：给 --eval 的那段脚本套一层性能跟踪，回报光栅 / 合成 / 布局耗时
+    if (isEval && process.env.CDP_TRACE) {
+      await cdp.send("Tracing.start", {
+        categories: "devtools.timeline,cc,benchmark",
+        transferMode: "ReportEvents",
       });
-      await sleep(Number(process.env.CDP_SETUP_WAIT || 400));
     }
 
     if (isEval) {
@@ -175,6 +207,37 @@ async function main() {
         fs.writeFileSync(out2, bufB);
         console.log("ANIMATING: " + (!same) + " (second frame -> " + out2 + ")");
       }
+    }
+
+    if (isEval && process.env.CDP_TRACE) {
+      await cdp.send("Tracing.end");
+      const t0 = Date.now();
+      while (Date.now() - t0 < 6000 && !cdp.events.some((e) => e.method === "Tracing.tracingComplete")) {
+        await sleep(150);
+      }
+      const tev = [];
+      cdp.events.forEach((e) => {
+        if (e.method === "Tracing.dataCollected" && Array.isArray(e.params.value)) {
+          e.params.value.forEach((v) => { if (v.ph === "X" && v.dur) tev.push(v); });
+        }
+      });
+      const byName = new Map();
+      tev.forEach((v) => {
+        const cur = byName.get(v.name) || { n: 0, ms: 0 };
+        cur.n++; cur.ms += v.dur / 1000;
+        byName.set(v.name, cur);
+      });
+      const rows = [...byName.entries()]
+        .map(([name, o]) => ({ name, n: o.n, ms: +o.ms.toFixed(1) }))
+        .sort((a, b) => b.ms - a.ms);
+      const pick = (re) => +rows.filter((r) => re.test(r.name)).reduce((s, r) => s + r.ms, 0).toFixed(1);
+      console.error("TRACE events=" + tev.length + " threads/names=" + rows.length);
+      console.error("TRACE buckets(ms): raster=" + pick(/Raster|TileManager|ImageDecode/i) +
+        " paint=" + pick(/^Paint$|PaintArtifact|PrePaint/i) +
+        " composite=" + pick(/Composite|Commit|LayerTree|UpdateLayer/i) +
+        " layout=" + pick(/Layout|RecalcStyle/i) +
+        " script=" + pick(/Script|Function|Timer|EventDispatch/i));
+      console.error("TRACE top12: " + JSON.stringify(rows.slice(0, 12)));
     }
 
     // 顺带回报控制台错误

@@ -1,3 +1,8 @@
 ﻿node_modules/
 *.log
 .DS_Store
+
+# 构建产物与截图（npm run build / tools/cdp.js 生成，可随时重出）
+dist/
+shots/
+
