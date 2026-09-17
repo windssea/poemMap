@@ -740,8 +740,17 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   max-width: min(1320px, calc(100vw - 44px), var(--card-w, 100vw));
   max-height: min(92vh, 960px);
   padding: 26px 30px 22px;
-  background: linear-gradient(180deg, #fffaf0, #fbf3e1);
-  border: 1px solid rgba(195, 166, 103, .8);
+  /* 磨砂玻璃：与右滑抽屉、多地浮层同一套配方（半透明暖白 + backdrop-filter），
+     山色水气从卡面透过来——云气层在 z 550、卡片在 640，落英从卡背后飘过是虚的。
+     底色仍留竖向渐变，只是换成了半透明：卡面原本就自上而下有一点纸色变化，
+     抹平成一块纯色反而「白得发死」。
+     均值（约 .61）略高于抽屉的 .58：卡片浮在画面正中，四周地貌比抽屉贴着的那条
+     屏幕边更深，地名、标签、注释这些小字要在这层上仍然立得住。 */
+  background: linear-gradient(180deg, rgba(255, 251, 242, .66), rgba(251, 243, 225, .56));
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+          backdrop-filter: blur(18px) saturate(1.35);
+  /* 边框同步收一档（.8 → .6）：纸是实的时候要一圈实金边来压，玻璃再压这么重就闷了 */
+  border: 1px solid rgba(195, 166, 103, .6);
   border-radius: 10px;
   box-shadow: var(--shadow-l), inset 0 0 0 1px rgba(255, 255, 255, .6);
   opacity: 0;
