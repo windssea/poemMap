@@ -101,11 +101,17 @@ export default function App() {
     }
   }, [detailPoemId]);
 
-  /* ---------- 卡片所依的诗若被筛掉，收起来 ---------- */
+  /* ---------- 正在读的诗若被筛掉，收起来 ---------- */
   useEffect(function () {
     const s = getState();
-    if (s.openPoemId && !list.some(function (p) { return p.id === s.openPoemId; })) {
-      closeCard();
+    const viewed = s.detailPoemId || s.openPoemId;
+    if (viewed && !list.some(function (p) { return p.id === viewed; })) {
+      setState({
+        activePlaceId: null,
+        openPoemId: null,
+        detailPoemId: null,
+        notesOpen: false,
+      });
     }
   }, [list]);
 
@@ -146,9 +152,7 @@ export default function App() {
   }, []);
 
   /* ---------- 抽屉/浮层开着时点地图也要收（引擎已处理 click，这里兜一层空白区） ----------
-     ⚠️ 必须调 dismissOverlays() 一次性收干净，不能只 closeDetail()：
-     只关抽屉会留下「detailPoemId 空了、openPoemId 还在」的一帧 → 卡片闪一下。
-     详见 store.js 里 dismissOverlays 的注释。 */
+     ⚠️ 必须调 dismissOverlays() 一次性收干净，不能拆成多次 setState。 */
   useEffect(function () {
     if (!detailPoemId && !poemListPlaceId) return;
     function onDown(e) {

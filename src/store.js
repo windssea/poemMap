@@ -9,7 +9,6 @@
    data/select.js 的纯函数现算，避免两份状态互相打架。
    ============================================================ */
 import { useSyncExternalStore } from "react";
-import { narrow } from "./lib/dom.js";
 
 /** 动效开关的初值：以 <html> 上的类为准（index.html 内联脚本已按系统偏好定过） */
 function initialMotion() {
@@ -26,7 +25,7 @@ const state = {
   tag: "",
 
   /* 选中与面板 */
-  openPoemId: null,        // 当前「看的那一首」（卡片或抽屉）
+  openPoemId: null,        // 当前选中的诗（篇目高亮 / 抽屉正在读的）
   activePlaceId: null,     // 选中的地标
   poemListPlaceId: null,   // 多地浮层对应的地标
   detailPoemId: null,      // 抽屉打开的诗（null = 抽屉关着）
@@ -85,14 +84,13 @@ export const setTag = (v) => setState({ tag: v, author: "" });
 export const clearFacets = () => setState({ author: "", tag: "" });
 
 /* ---------------- 动作：地标 / 卡片 / 浮层 ---------------- */
-/* 窄屏没有中央卡片这一步：手机上一屏本来就窄，卡片再弹一次只是多一层遮挡，
-   所以任何「打开某一首诗」的入口（地标 / 篇目栏 / 索引 / 浮层 / 换一批 / 深链）
-   在窄屏一律直接进右侧抽屉。 */
+/* 点某一首诗一律进右侧抽屉，不再经过中央卡片。
+   中央卡片组件仍留在树上（旧路径 / 探针兜底），但本动作不再打开它。 */
 export function openCard(placeId, poemId) {
-  if (narrow() && poemId) { openDetail(poemId, placeId); return; }
+  if (poemId) { openDetail(poemId, placeId); return; }
   setState({
     activePlaceId: placeId,
-    openPoemId: poemId || null,
+    openPoemId: null,
     poemListPlaceId: null,
   });
 }
@@ -102,40 +100,55 @@ export function closeCard() {
 }
 
 export function openPoemList(placeId) {
-  setState({ activePlaceId: placeId, poemListPlaceId: placeId });
+  setState({
+    activePlaceId: placeId,
+    poemListPlaceId: placeId,
+    /* 浮层是「挑一首」，把正在读的抽屉收掉，免得列表和详情叠在一起 */
+    detailPoemId: null,
+    notesOpen: false,
+    openPoemId: null,
+  });
 }
 
 export function closePoemList() {
   setState({ poemListPlaceId: null });
 }
 
+/** 只点亮地标与篇目，不打开抽屉（左侧目录用） */
+export function locatePoem(placeId, poemId) {
+  setState({
+    activePlaceId: placeId || null,
+    openPoemId: poemId || null,
+    detailPoemId: null,
+    notesOpen: false,
+    poemListPlaceId: null,
+  });
+}
+
 /* ---------------- 动作：抽屉 ---------------- */
-/** 开抽屉。placeId 可选：窄屏从地标/篇目进来时顺手把地标点亮 */
+/** 开抽屉。placeId 可选：从地标/篇目进来时顺手把地标点亮 */
 export function openDetail(poemId, placeId) {
   setState({
     detailPoemId: poemId,
-    /* 桌面端留住 openPoemId：关抽屉要回到中央卡片。
-       窄屏不留——否则关掉抽屉又冒出卡片，正好是「不要弹出」的那一层。 */
-    openPoemId: narrow() ? null : poemId,
+    /* 篇目栏 / 索引用来高亮「正在读的这首」 */
+    openPoemId: poemId,
     activePlaceId: placeId || state.activePlaceId,
     notesOpen: false,
-    /* 进详情即收起中央卡片与浮层：画面只留一张抽屉 */
+    /* 进详情即收起浮层：画面只留一张抽屉 */
     poemListPlaceId: null,
   });
 }
 
 export function closeDetail() {
-  setState({ detailPoemId: null, notesOpen: false });
+  /* 一并清掉 openPoemId：否则关抽屉会留下「正在看这首」的状态，
+     中央卡片那条旧显示条件会把它弹出来。 */
+  setState({ detailPoemId: null, notesOpen: false, openPoemId: null });
 }
 
 /* 点地图空白：卡片 / 多地浮层 / 抽屉**一次性**收起。
    ----------------------------------------------------------
-   ⚠️ 必须是「一次 setState」，不能写成 closeCard() + closePoemList() + closeDetail()。
-   卡片是否显示由 `!!openPoemId && !poemListPlaceId && !detailPoemId` 决定，
-   而 openDetail() 会把 openPoemId 一并保留（关抽屉要回到卡片）。所以若先单独
-   closeDetail()，中间会出现「detailPoemId 已空、openPoemId 还在」的一帧——
-   卡片当场冒出来又被下一次 setState 收走，看起来就是「闪一下」，而且还会误触发
-   MOTION.cardIn 入场动画。一次写完就没有这个中间态。
+   ⚠️ 必须是「一次 setState」，不能写成 closeCard() + closePoemList() + closeDetail()
+   分三次提交——中间态会让浮层/抽屉各自闪一帧。一次写完就没有这个中间态。
 
    两个入口共用本动作（引擎的 map.on("click") 与 App 的 pointerdown 兜底），
    谁先跑谁清干净，后跑的因状态无变化而被 setState 的 changed 判断直接挡掉。 */

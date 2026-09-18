@@ -10,6 +10,7 @@ import { useStore, closeDetail, toggleNotes } from "../store.js";
 import { POEM_BY_ID, AUTHORS, tagsOf } from "../data/index.js";
 import { PLACE_BY_ID } from "../data/places.js";
 import { MOTION } from "../engine/motion.js";
+import { backToPlaceList } from "../actions.js";
 import { IconChevronDown, IconClose, IconPin } from "./icons.jsx";
 
 export default function Detail() {
@@ -22,6 +23,7 @@ export default function Detail() {
   const node = p ? PLACE_BY_ID[p.__placeId] : null;
   const author = p ? (AUTHORS[p.author] || {}) : {};
   const on = !!p;
+  const rest = node && p ? node.poems.filter(function (q) { return q.id !== p.id; }) : [];
 
   useEffect(function () {
     if (on && MOTION.on && ref.current) MOTION.cardIn(ref.current);
@@ -68,6 +70,14 @@ export default function Detail() {
               <div id="dTags" className="d-tags">
                 {tagsOf(p.id).map(function (t) { return <span key={t}>{t}</span>; })}
               </div>
+              {!!rest.length && (
+                <div className="d-others">
+                  <button type="button" className="others-more"
+                    onClick={() => backToPlaceList(node.id)}>
+                    此处另有 {rest.length} 首 ›
+                  </button>
+                </div>
+              )}
 
               <section className="sec">
                 <h3>诗意简析</h3>

@@ -1,7 +1,7 @@
 /* ============================================================
    跨层动作
    ----------------------------------------------------------
-   有些操作同时牵动「状态」与「地图」（比如点篇目要飞过去再开卡），
+   有些操作同时牵动「状态」与「地图」（比如点篇目要飞过去点亮地标），
    集中放这里，组件只管调用，不必知道谁负责哪一半。
    ============================================================ */
 import { POEMS, POEM_BY_ID } from "./data/index.js";
@@ -11,21 +11,20 @@ import { MOTION } from "./engine/motion.js";
 import { ATMOSPHERE } from "./engine/atmosphere.js";
 import { getEngine } from "./engine/mapEngine.js";
 import {
-  getState, openCard, openPoemList, closePoemList, closePanel, closeMenu,
+  getState, openDetail, openPoemList, locatePoem, closePanel, closeMenu,
   dismissOverlays, setMotionOn, showToast,
 } from "./store.js";
 
-/** 点地标：一处多诗先列出来，独此一首直接开卡 */
+/** 点地标：一处多诗先列出来，独此一首直接开抽屉 */
 export function openPlace(node) {
   if (!node) return;
   if (node.poems.length > 1) openPoemList(node.id);
-  else openCard(node.id, node.poems[0].id);
+  else openDetail(node.poems[0].id, node.id);
 }
 
-/** 浮动列表里选中一首 */
+/** 浮动列表里选中一首 → 直接开抽屉 */
 export function choosePoem(placeId, poemId) {
-  closePoemList();
-  openCard(placeId, poemId);
+  openDetail(poemId, placeId);
 }
 
 /** 卡片底部「此处另有 N 首 ›」→ 回到浮层 */
@@ -33,14 +32,14 @@ export function backToPlaceList(placeId) {
   openPoemList(placeId);
 }
 
-/** 从篇目/索引里挑一首：飞过去 + 开卡 */
+/** 从篇目/索引里挑一首：只飞到地标并点亮，不打开抽屉 */
 export function goToPoem(poemId) {
   const p = POEM_BY_ID[poemId];
   if (!p) return;
   const node = PLACE_BY_ID[p.__placeId];
   if (!node) return;
   getEngine() && getEngine().goToPlace(node.id);
-  openCard(node.id, poemId);
+  locatePoem(node.id, poemId);
 }
 
 /** 换一批：在当前筛选结果里随机点亮一首 */
@@ -51,7 +50,7 @@ export function pickRandom() {
   const node = PLACE_BY_ID[pick.__placeId];
   if (!node) return;
   getEngine() && getEngine().goToPlace(node.id);
-  openCard(node.id, pick.id);
+  openDetail(pick.id, node.id);
   showToast("偶遇一首：" + pick.title);
 }
 

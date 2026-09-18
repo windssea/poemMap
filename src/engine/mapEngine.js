@@ -19,7 +19,7 @@ import { placePoemList } from "./anchor.js";
 import { TERRAIN } from "./terrain.js";
 import { MOTION } from "./motion.js";
 import {
-  getState, subscribe, openCard, openPoemList, dismissOverlays,
+  getState, subscribe, openDetail, openPoemList, dismissOverlays,
 } from "../store.js";
 
 /* ---------------- 省区设色 ---------------- */
@@ -378,9 +378,9 @@ export function createEngine(mapEl) {
     n.marker = L.marker([n.lat, n.lng], { keyboard: false, riseOnHover: true, icon: nodeIcon(n, false) });
     n.marker.on("click", function (e) {
       L.DomEvent.stopPropagation(e);
-      /* 一处多诗 → 先进浮层挑一首；独此一首 → 直接开卡 */
+      /* 一处多诗 → 先进浮层挑一首；独此一首 → 直接开抽屉 */
       if (n.poems.length > 1) openPoemList(n.id);
-      else openCard(n.id, n.poems[0].id);
+      else openDetail(n.poems[0].id, n.id);
     });
   });
 

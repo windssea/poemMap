@@ -61,6 +61,7 @@ export default function Sidebar() {
   }, []);
 
   const pick = useCallback(function (id) {
+    /* 目录只定位到地标，不打开抽屉 */
     goToPoem(id);
   }, []);
 

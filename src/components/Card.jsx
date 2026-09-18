@@ -1,5 +1,5 @@
 /* ============================================================
-   中央诗词卡
+   中央诗词卡（点诗已改为直接开抽屉，本组件默认不再打开）
    ----------------------------------------------------------
    · 诗文**一律竖排、从右到左**（与古籍一致，没有横排分支）
    · 卡片居中于「地图可视区」，位置由 anchor.placeCard() 命令式计算
@@ -28,7 +28,8 @@ export default function Card() {
   /* 地标由「诗」反推，而不是读 activePlaceId——
      否则点了另一处地标后，卡片会串用新地标的地名 */
   const node = poem ? PLACE_BY_ID[poem.__placeId] : null;
-  const on = !!poem && !poemListPlaceId && !detailPoemId;
+  /* 中央卡片已停用：openPoemId 现在只表示目录选中 / 抽屉在读，不再弹卡 */
+  const on = false;
   const rest = node ? node.poems.filter(function (q) { return q.id !== poem.id; }) : [];
   /* 长词（18 句起）把列收紧一档，好在常见窗口里整首读完（见 style.css .c-poem.is-long） */
   const long = !!poem && poem.lines.length >= 18;
