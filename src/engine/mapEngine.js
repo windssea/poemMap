@@ -562,11 +562,11 @@ export function createEngine(mapEl) {
        中国轮廓的宽高比约 1.38，在 16:9 屏上永远是「高度先卡住」，
        所以上下那几十像素直接换成画面大小——松一点，整张图就小一圈。 */
     map.fitBounds(CHINA_BOUNDS, {
-      /* 窄屏上工具条是两行（搜索 + 筛选），下面还压着统计 dock，
-         上下留白要比桌面端更宽；此时画面其实是**宽度**先卡住，
-         所以这几像素只影响居中，不影响大小。 */
-      paddingTopLeft: [padLeft, narrow() ? 150 : 100],
-      paddingBottomRight: [narrow() ? 18 : 92, narrow() ? 92 : 74],
+      /* 窄屏上顶部已经没有题名与筛选条了（见 style.css 的 @media 820），
+         所以上面只留一点点呼吸位；下面给统计 dock 与缩放钮让位。
+         此时画面其实是**宽度**先卡住，这两组数字只影响居中，不影响大小。 */
+      paddingTopLeft: [padLeft, narrow() ? 56 : 100],
+      paddingBottomRight: [narrow() ? 18 : 92, narrow() ? 78 : 74],
       animate: false,
     });
     queueLayout();
@@ -675,41 +675,18 @@ export function createEngine(mapEl) {
       });
       return out;
     },
-    /** 飞去某处并开卡（侧栏点篇目 / 随机一首都走这里） */
+    /** 飞去某处并开卡（侧栏点篇目 / 命令面板 / 随机一首都走这里）。
+        落点略偏左：抽屉从右侧盖过来时，地标不至于正正好被压住。
+        ——只在**用户明确说「去这里」**时才飞；打开抽屉本身不碰地图，
+        见 components/Detail.jsx 里的说明。 */
     goToPlace: function (placeId, minZoom) {
       const node = PLACE_BY_ID[placeId];
       if (!node) return null;
       const z = Math.max(map.getZoom(), minZoom || 5.6);
-      /* 落点偏左：抽屉从右侧盖过来，居中的话地标正好被压住 */
       const center = offsetCenter(node, z, 0.38);
       if (MOTION.on) map.flyTo(center, z, { duration: 1.05 });
       else map.setView(center, z, { animate: false });
       return node;
-    },
-    /** 抽屉打开后把地标挪进「未被遮住的那块画面」。
-        只在它确实被挡住或贴边时才动——点画面正中一个可见的地标，
-        画面不该自己滑一下。 */
-    revealPlace: function (placeId) {
-      const node = PLACE_BY_ID[placeId];
-      if (!node) return;
-      const size = map.getSize();
-      const detail = document.getElementById("detail");
-      const open = detail && detail.classList.contains("on");
-      /* 用 offsetWidth（布局宽）而不是 getBoundingClientRect：
-         抽屉滑入时 transform 还在动，rect.left 是动画中间值。 */
-      const coverLeft = open ? Math.max(0, size.x - detail.offsetWidth) : size.x;
-      const pt = map.latLngToContainerPoint([node.lat, node.lng]);
-      const safeX = coverLeft - 70;
-      if (pt.x > 70 && pt.x < safeX && pt.y > 130 && pt.y < size.y - 96) return;
-      const z = map.getZoom();
-      /* frac 是「占**整个视口宽**的比例」，而我们要的是「占**未被遮住那块**的中点」。
-         长诗抽屉能占到 94vw，剩下不到 200px，中点比例只有 0.07——
-         这里如果给它一个 0.2 的下限，算出来的落点反而又钻回抽屉底下去了。
-         所以下限按「至少离左缘 6%」给，不按「看着舒服」给。 */
-      const frac = Math.max(0.06, Math.min(0.5, (coverLeft * 0.5) / size.x));
-      const center = offsetCenter(node, z, frac);
-      if (MOTION.on) map.flyTo(center, z, { duration: 0.55 });
-      else map.setView(center, z, { animate: false });
     },
     closeAll: function () { dismissOverlays(); },
     invalidate: function () { map.invalidateSize(); },

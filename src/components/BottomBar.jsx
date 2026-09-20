@@ -3,12 +3,15 @@
    ----------------------------------------------------------
    唐 / 宋 / 先唐 三个数是**当前筛选下**的结果，与「N 首 / N 地」
    同源——所以筛到宋词时唐那一格会自然归零并收起，而不是杵在那里
-   显示一个永远不变的 91。全量规模放进 title 与「关于本图」里说。
+   显示一个永远不变的数。
+
+   窄屏上多一枚「⌘」：那一档会把顶部的题名与筛选条整块收掉，
+   搜索与筛选改由命令面板承担，所以入口得搬到底栏来
+   （见 style.css 里 `@media (max-width: 820px)` 的说明）。
    ============================================================ */
-import { useStore, toggleSide } from "../store.js";
+import { useStore, toggleSide, openPalette } from "../store.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
 import { visiblePlaceIds } from "../data/select.js";
-import { ERA_COUNT } from "../data/index.js";
 import { ERAS, inEra } from "../data/eras.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { MOTION } from "../engine/motion.js";
@@ -26,7 +29,7 @@ export default function BottomBar() {
 
   /* 当前筛选下各时代组的首数（未筛时为全量）。
      朱印给时代、小字给体裁——「唐 + 诗 + 91」读作「唐诗 91」，
-     「古 + 诗 + 18」读作「古诗 18」，与旧版的读法一致。 */
+     「古 + 诗 + 18」读作「古诗 18」。 */
   const perEra = SHOWN.map(function (e) {
     return {
       val: e.val,
@@ -55,6 +58,12 @@ export default function BottomBar() {
         <span>篇目</span>
       </button>
 
+      {/* 窄屏专用：顶部收起来之后，搜索与筛选的唯一入口 */}
+      <button id="dockPalette" type="button" aria-label="搜索与筛选"
+        title="搜索诗词、诗人、地标、主题，或切换筛选" onClick={openPalette}>
+        <span className="cmd-glyph" aria-hidden="true">⌘</span>
+      </button>
+
       {perEra.map(function (e) {
         return (
           <span className="bs" key={e.val}
@@ -77,10 +86,6 @@ export default function BottomBar() {
         <IconShuffle />
         <span>换一批</span>
       </button>
-      <span className="bs-hint"
-        title={"全库 " + (ERA_COUNT.先唐 || 0) + " 首先唐 · " + (ERA_COUNT.唐 || 0) + " 首唐诗 · " + (ERA_COUNT.宋 || 0) + " 首宋词"}>
-        点亮地标，读一首诗
-      </span>
     </div>
   );
 }

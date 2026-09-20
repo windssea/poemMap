@@ -1196,13 +1196,38 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
 @keyframes bsTick { from { opacity: .35; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
 .bs b, .bs-counts b { animation: bsTick .34s cubic-bezier(.22, 1, .28, 1); }
 html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
-.bs-hint {
-  padding: 0 15px 0 14px;
-  border-left: 1px solid var(--line-2);
-  font-size: 12px;
-  letter-spacing: .1em;
-  color: var(--ink-3);
+
+/* 窄屏专用：顶部收起来后，搜索与筛选只剩这一枚入口 */
+#dockPalette {
+  display: none;
+  flex: none;
+  width: 32px; height: 32px;
+  place-items: center;
+  background: rgba(255, 253, 247, .85);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
 }
+#dockPalette:hover, #dockPalette:active { border-color: rgba(168, 50, 42, .42); background: #fff; }
+#dockPalette .cmd-glyph { font-size: 15px; }
+#dockPalette:hover .cmd-glyph { color: var(--seal); }
+
+/* 窄屏专用：篇目栏几乎盖满屏时，唯一可靠的关闭入口 */
+#sideClose {
+  display: none;
+  flex: none;
+  width: 24px; height: 24px;
+  margin: 0 2px 6px 4px;
+  place-items: center;
+  padding: 5px;
+  color: var(--ink-3);
+  background: rgba(120, 108, 86, .1);
+  border: none;
+  border-radius: 50%;
+}
+#sideClose:hover { color: var(--seal); background: rgba(168, 50, 42, .1); }
+#sideClose svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 
 /* ══════════ 右缘竖排题词 ══════════ */
 #sideVerse {
@@ -2267,36 +2292,39 @@ input:focus-visible {
 }
 
 @media (max-width: 820px) {
-  :root { --side-w: min(300px, 84vw); }
+  :root { --side-w: min(316px, 86vw); }
 
-  #brand { top: 12px; left: 14px; }
-  .seal-big { width: 30px; height: 30px; font-size: 17px; }
-  .b-text h1 { font-size: 18px; }
-  .b-text p { display: none; }
+  /* ══ 窄屏把顶部整块收掉 ══
+     390×844 上，题名（33px）+ 搜索框与筛选条（87px）吃掉 145px，
+     差不多是六分之一屏；而手机上真正要看的是地图。
+     于是：题名是纯装饰，去掉；搜索与筛选搬进命令面板，
+     入口挪到底栏那枚 ⌘（见 #dockPalette）。 */
+  #brand, #tools { display: none; }
 
-  #tools {
-    left: 14px; right: 14px; top: 58px;
-    width: auto;
-    min-width: 0;
-    max-width: none;
+  /* 顶部没有东西了，地图把这一整块吃回来 */
+  .side-foot { display: none; }      /* 手指没有 ↑↓，键位提示是噪声 */
+
+  #sidebar {
+    left: 0; top: 0; bottom: 0;
+    width: var(--side-w);
+    border-radius: 0 14px 14px 0;
+    border-left: none;
+    transform: translateX(-103%);
+    z-index: 720;
   }
-  /* 筛选条：把 chip 收紧一点，四个时代组 + 三个体裁 + 两个圆钮
-     刚好排一行；真排不下要换行时，圆角改成 14px，
-     两行读起来才像一块面板而不是一个被压扁的胶囊。 */
+  body.side-open #sidebar { transform: none; }
+  #sideToggle { display: inline-flex; }
+  #sideClose { display: grid; }
+  #dockPalette { display: grid; }
+
   .chipbar { justify-content: flex-start; gap: 5px; padding: 5px 6px; border-radius: 14px; }
   .chips { gap: 2px; }
   .chips button { padding: 5px 7px; font-size: 11.5px; letter-spacing: .02em; }
-  /* ⚠️ 窄屏必须去掉这个「撑满」的占位：
-     它在换行布局里会把整行剩余宽度吃掉，圆钮于是被挤到第二行去。
-     改成给**第一个**圆钮 margin-left:auto——排得下就一起贴右，
-     排不下两个一起换行，不会一个留在一行、一个跑到第三行。 */
   .chip-fill { display: none; }
   .round-btn { margin-left: 0; }
   #paletteBtn { margin-left: auto; }
-  .q-kbd { display: none; }          /* 手机没有物理键盘，别占位 */
+  .q-kbd { display: none; }
 
-  /* 统计 dock：窄屏放不下「古诗/唐诗/宋词 + 首地 + 换一批 + 提示」这么多格，
-     按屏宽分两档做减法，而不是让它溢出到屏幕外。 */
   #bottomBar {
     left: 14px; right: 70px; bottom: 14px;
     justify-content: center;
@@ -2309,18 +2337,6 @@ input:focus-visible {
   .bs-counts { padding: 0 8px; }
   #shuffleBtn { padding: 5px 10px; }
   #shuffleBtn span { display: none; }         /* 只留图标，title 里还有字 */
-  .bs-hint { display: none; }
-
-  #sidebar {
-    left: 0; top: 0; bottom: 0;
-    width: var(--side-w);
-    border-radius: 0 14px 14px 0;
-    border-left: none;
-    transform: translateX(-103%);
-    z-index: 720;
-  }
-  body.side-open #sidebar { transform: none; }
-  #sideToggle { display: inline-flex; }
 
   #zoomer { right: 14px; bottom: 14px; }
   #compass { right: 14px; bottom: 94px; }
@@ -2344,6 +2360,19 @@ input:focus-visible {
 @media (max-width: 560px) {
   #bottomBar .bs { display: none; }
   #bottomBar { right: 66px; }
+}
+
+/* ══════════ 刘海屏安全区 ══════════
+   index.html 里写了 viewport-fit=cover，全面屏手机上底部的 home indicator
+   会压住统计 dock 与缩放钮。用 env() 把这几处顶开；
+   不支持 env() 的浏览器取 0，等于没写。 */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 820px) {
+    #bottomBar { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+    #zoomer { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+    #compass { bottom: calc(94px + env(safe-area-inset-bottom, 0px)); }
+    #sidebar { padding-top: env(safe-area-inset-top, 0px); }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

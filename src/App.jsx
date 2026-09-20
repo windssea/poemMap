@@ -195,12 +195,18 @@ export default function App() {
   /* ---------- 抽屉/浮层开着时点地图也要收（引擎已处理 click，这里兜一层空白区） ----------
      ⚠️ 必须调 dismissOverlays() 一次性收干净，不能拆成多次 setState。 */
   useEffect(function () {
-    if (!detailPoemId && !poemListPlaceId) return;
+    if (!detailPoemId && !poemListPlaceId && !sideOpen) return;
     function onDown(e) {
       const s = getState();
-      if (!s.detailPoemId && !s.poemListPlaceId) return;
       const t = e.target;
       if (!t || !t.closest) return;
+      /* 窄屏的篇目栏几乎盖满屏，露出来的那条地图就是「点空白收起」的手势区。
+         桌面上篇目栏只占左边一栏，误触代价大，不做这件事。 */
+      if (s.sideOpen && narrow() && !t.closest("#sidebar")) {
+        closeSide();
+        return;
+      }
+      if (!s.detailPoemId && !s.poemListPlaceId) return;
       if (t.closest("#detail") || t.closest("#poemList") || t.closest("#card") ||
         t.closest("#panel") || t.closest("#sidebar") || t.closest("#bottomBar") ||
         t.closest("#tools") || t.closest("#zoomer") || t.closest("#menuPop")) return;
@@ -209,7 +215,7 @@ export default function App() {
     }
     document.addEventListener("pointerdown", onDown);
     return function () { document.removeEventListener("pointerdown", onDown); };
-  }, [detailPoemId, poemListPlaceId]);
+  }, [detailPoemId, poemListPlaceId, sideOpen]);
 
   return (
     <>

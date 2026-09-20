@@ -62,15 +62,10 @@ export default function Detail() {
     if (on && bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [on, poemId]);
 
-  /* 抽屉一开，把地标挪进「没被抽屉挡住的那块画面」。
-     等一帧：抽屉此刻刚拿到 .on，offsetWidth 才是最终宽度。 */
-  useEffect(function () {
-    if (!on || !node) return;
-    const e = getEngine();
-    if (!e || !e.revealPlace) return;
-    const t = setTimeout(function () { e.revealPlace(node.id); }, 60);
-    return function () { clearTimeout(t); };
-  }, [on, poemId, node]);
+  /* ⚠️ 这里**故意不做**「打开抽屉就把地图挪一下，好让地标露出来」。
+     试过，很打扰：读一首诗是看文字，画面自己滑一下反而把人从字上拽走；
+     连翻几首时更明显。地标露不露出来交给用户自己拖。
+     （从篇目栏 / 命令面板点进来时仍会飞过去——那是用户明确要求「去这里」。） */
 
   /* 键盘 ←/→ 翻篇。焦点在输入框里时不抢。 */
   useEffect(function () {

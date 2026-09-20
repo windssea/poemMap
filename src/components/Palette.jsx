@@ -14,15 +14,17 @@
    ============================================================ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  useStore, closePalette, openDetail, openPoemList, setAuthor, clearFacets,
+  useStore, closePalette, openDetail, openPoemList, setAuthor, setTag, clearFacets,
+  setDynasty, setForm,
 } from "../store.js";
 import { POEMS } from "../data/index.js";
 import { PLACES, PLACE_BY_ID } from "../data/places.js";
 import { poetIndex, themeIndex } from "../data/select.js";
 import { getEngine } from "../engine/mapEngine.js";
 import {
-  pickRandom, resetView, toggleMotion, openPanelSafe, toggleSidebar, focusTag,
+  pickRandom, resetView, toggleMotion, openPanelSafe, toggleSidebar, focusTag, about,
 } from "../actions.js";
+import { openHelp } from "../store.js";
 import { IconSearch, IconChevron } from "./icons.jsx";
 
 /* ---------------- 打分 ---------------- */
@@ -72,15 +74,27 @@ function buildIndex() {
   return INDEX;
 }
 
-/* ---------------- 动作 ---------------- */
+/* ---------------- 动作 ----------------
+   窄屏会把顶部的题名与筛选条整块收掉，搜索与筛选全靠这个面板。
+   所以「朝代 / 体裁」这些原本在筛选条上的开关也必须在这里有一份，
+   否则藏起顶栏就等于砍掉了筛选能力。 */
 const ACTIONS = [
   { kind: "act", id: "random", label: "随机读一首", hint: "R", run: pickRandom },
   { kind: "act", id: "nation", label: "回到全国", hint: "G", run: resetView },
   { kind: "act", id: "poet", label: "打开诗人索引", run: () => openPanelSafe("poet") },
   { kind: "act", id: "theme", label: "打开主题索引", run: () => openPanelSafe("theme") },
   { kind: "act", id: "list", label: "展开或收起篇目栏", run: toggleSidebar },
+  { kind: "act", id: "d-all", label: "不限朝代", kw: "全部 朝代", run: () => setDynasty("全部") },
+  { kind: "act", id: "d-pre", label: "只看先唐（先秦 · 汉 · 魏晋 · 南北朝）", kw: "古诗 先唐 先秦 汉 魏晋 南北朝", run: () => setDynasty("先唐") },
+  { kind: "act", id: "d-tang", label: "只看唐诗", kw: "唐 诗", run: () => setDynasty("唐") },
+  { kind: "act", id: "d-song", label: "只看宋词", kw: "宋 词", run: () => setDynasty("宋") },
+  { kind: "act", id: "f-all", label: "不限体裁", kw: "全部 体裁", run: () => setForm("全部") },
+  { kind: "act", id: "f-shi", label: "只看诗", kw: "诗 体裁", run: () => setForm("诗") },
+  { kind: "act", id: "f-ci", label: "只看词", kw: "词 体裁", run: () => setForm("词") },
   { kind: "act", id: "motion", label: "开关动效", run: toggleMotion },
+  { kind: "act", id: "help", label: "快捷键速查", run: openHelp },
   { kind: "act", id: "clear", label: "清除作者与主题筛选", run: clearFacets },
+  { kind: "act", id: "about", label: "关于本图", run: about },
 ];
 
 const KIND_LABEL = { poem: "诗", author: "人", tag: "题", place: "地", act: "做" };
@@ -138,7 +152,10 @@ export default function Palette() {
     const authors = hit(idx.authors).slice(0, 5).map(function (r) { return r.it; });
     const places = hit(idx.places).slice(0, 5).map(function (r) { return r.it; });
     const tags = hit(idx.tags).slice(0, 6).map(function (r) { return r.it; });
-    const acts = ACTIONS.filter(function (a) { return score(a.label, needle) >= 0; }).slice(0, 4);
+    const acts = ACTIONS.filter(function (a) {
+      /* kw 是给搜索用的别名：搜「唐朝」「词牌」也能命中对应开关 */
+      return score(a.label, needle) >= 0 || (a.kw ? score(a.kw, needle) >= 0 : false);
+    }).slice(0, 5);
 
     const groups = [];
     if (poems.length) groups.push({ group: "诗词", items: poems });

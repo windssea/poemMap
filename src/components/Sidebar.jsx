@@ -7,7 +7,7 @@
      3. 选中项自动滚进视野 + ↑↓ 键上下走，不必先用鼠标去够。
    ============================================================ */
 import { memo, useCallback, useEffect, useRef } from "react";
-import { useStore, toggleDynasty } from "../store.js";
+import { useStore, toggleDynasty, closeSide } from "../store.js";
 import { placeText } from "../data/select.js";
 import { ERAS } from "../data/eras.js";
 import { ERA_COUNT } from "../data/index.js";
@@ -16,7 +16,7 @@ import { THUMBS } from "../engine/thumbs.js";
 import { els } from "../engine/refs.js";
 import { MOTION } from "../engine/motion.js";
 import { goToPoem } from "../actions.js";
-import { IconChevron, IconPin } from "./icons.jsx";
+import { IconChevron, IconClose, IconPin } from "./icons.jsx";
 
 const TABS = ERAS;
 
@@ -140,6 +140,12 @@ export default function Sidebar() {
           );
         })}
         <span className="tabs-n" title="当前筛选下的篇目数">{list.length} 首</span>
+        {/* 窄屏专用关闭钮。桌面上「篇目」那颗开关一直露在左下 dock 里，
+            手机上篇目栏几乎盖满屏，那颗开关被压在下面——不给一个 X
+            就真的关不掉了。 */}
+        <button id="sideClose" type="button" aria-label="收起篇目栏" onClick={closeSide}>
+          <IconClose />
+        </button>
       </div>
 
       <div className="side-list" id="list" ref={listRef}>
