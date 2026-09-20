@@ -19,7 +19,7 @@ import { placePoemList } from "./anchor.js";
 import { TERRAIN } from "./terrain.js";
 import { MOTION } from "./motion.js";
 import {
-  getState, subscribe, openDetail, openPoemList, dismissOverlays,
+  getState, subscribe, openDetail, openPoemList, dismissOverlays, setHoverPlace,
 } from "../store.js";
 
 /* ---------------- 省区设色 ---------------- */
@@ -356,12 +356,9 @@ export function createEngine(mapEl) {
      ============================================================ */
   function dotHTML(node, active) {
     const many = node.poems.length > 1;
-    /* title 是给鼠标的「先看一眼」：悬停就能知道这一处有哪几首，
-       不必先点开浮层再退出来。 */
-    const tip = esc(node.region + "（" + node.name + "）· " + node.poems.length + " 首：") +
-      esc(node.poems.slice(0, 5).map(function (p) { return p.title; }).join("、")) +
-      (node.poems.length > 5 ? esc(" 等") : "");
-    return '<span class="dot-wrap' + (active ? " on" : "") + '" title="' + tip + '">' +
+    /* 不再挂原生 title：悬停交给 #placeHover 那张纸卡（又慢又丑的气泡
+       只能显示一行纯文本，读不出「这一处有哪几首」）。 */
+    return '<span class="dot-wrap' + (active ? " on" : "") + '">' +
       (active ? '<span class="dot-glow"></span><span class="dot-ring"></span>' : "") +
       '<span class="dot' + (many ? " many" : "") + '"></span>' +
       '<span class="dot-name">' + esc(node.name) +
@@ -383,10 +380,36 @@ export function createEngine(mapEl) {
     n.marker = L.marker([n.lat, n.lng], { keyboard: false, riseOnHover: true, icon: nodeIcon(n, false) });
     n.marker.on("click", function (e) {
       L.DomEvent.stopPropagation(e);
+      /* 点下去就换成浮层/抽屉，悬停卡先收掉，别两张卡叠着 */
+      clearTimeout(hoverTimer);
+      hoverSeq++;
+      setHoverPlace(null);
       /* 一处多诗 → 先进浮层挑一首；独此一首 → 直接开抽屉 */
       if (n.poems.length > 1) openPoemList(n.id);
       else openDetail(n.poems[0].id, n.id);
     });
+    n.marker.on("mouseover", function () { wantHover(n.id); });
+    n.marker.on("mouseout", function () { wantHover(null); });
+  });
+
+  /* ---- 悬停卡 ----
+     显隐各留一点延时：珠子挨得密时，鼠标从一颗划到另一颗会连着触发
+     out/in，不留延时卡片就一直闪。用序号挡住「上一次的延时回调」，
+     后到的事件说了算。地图一开始拖动/缩放就立刻收掉，别跟着飘。 */
+  let hoverTimer = 0;
+  let hoverSeq = 0;
+  function wantHover(id) {
+    const seq = ++hoverSeq;
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(function () {
+      if (seq !== hoverSeq) return;
+      setHoverPlace(id);
+    }, id ? 70 : 190);
+  }
+  map.on("movestart zoomstart", function () {
+    clearTimeout(hoverTimer);
+    hoverSeq++;
+    setHoverPlace(null);
   });
 
   /* ============================================================
@@ -552,17 +575,42 @@ export function createEngine(mapEl) {
   /* ============================================================
      与状态同步
      ============================================================ */
+  /* 首次铺点由开场时间线负责（App 在 MOTION.init 之后调 intro），
+     这里只处理**后续筛选**新亮起来的地标，免得两套动画抢同一批元素。 */
+  let firstSync = true;
+
   function syncVisibility() {
     const s = getState();
     const list = selectFiltered(s);
     const alive = visiblePlaceIds(list);
 
+    const added = [];
     PLACES.forEach(function (n) {
       const hit = alive.has(n.id);
-      if (hit && !map.hasLayer(n.marker)) n.marker.addTo(map);
+      if (hit && !map.hasLayer(n.marker)) {
+        n.marker.addTo(map);
+        added.push(n);
+      }
       if (!hit && map.hasLayer(n.marker)) map.removeLayer(n.marker);
     });
 
+    /* 新亮起来的地标依次淡入。
+       换一次筛选可能一次进出几十个点，整片「啪」地出现既生硬，
+       也让人看不出到底变了哪几处；淡入能把「变化」本身说清楚。 */
+    if (!firstSync && added.length && MOTION.on) {
+      const els = added.map(function (n) {
+        const el = n.marker.getElement();
+        return el && el.querySelector(".mk-anim");
+      }).filter(Boolean);
+      if (els.length) {
+        MOTION.markersIn(els, {
+          each: Math.max(0.005, Math.min(0.018, 0.45 / els.length)),
+          duration: 0.42,
+        });
+      }
+    }
+
+    firstSync = false;
     queueLayout();
     return list;
   }
@@ -654,7 +702,12 @@ export function createEngine(mapEl) {
       const safeX = coverLeft - 70;
       if (pt.x > 70 && pt.x < safeX && pt.y > 130 && pt.y < size.y - 96) return;
       const z = map.getZoom();
-      const center = offsetCenter(node, z, Math.max(0.2, Math.min(0.5, (coverLeft * 0.5) / size.x)));
+      /* frac 是「占**整个视口宽**的比例」，而我们要的是「占**未被遮住那块**的中点」。
+         长诗抽屉能占到 94vw，剩下不到 200px，中点比例只有 0.07——
+         这里如果给它一个 0.2 的下限，算出来的落点反而又钻回抽屉底下去了。
+         所以下限按「至少离左缘 6%」给，不按「看着舒服」给。 */
+      const frac = Math.max(0.06, Math.min(0.5, (coverLeft * 0.5) / size.x));
+      const center = offsetCenter(node, z, frac);
       if (MOTION.on) map.flyTo(center, z, { duration: 0.55 });
       else map.setView(center, z, { animate: false });
     },

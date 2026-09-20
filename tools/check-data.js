@@ -43,7 +43,13 @@ const tagTxt = read("src/data/tags.js");
 const tagged = new Set([...tagTxt.matchAll(/^\s*"([\w-]+)":\s*\[/gm)].map(function (m) { return m[1]; }));
 
 const authorTxt = read("src/data/authors.js");
-const registered = new Set([...authorTxt.matchAll(/^\s{2}([\u4e00-\u9fa5]+):\s*\{\s*$/gm)].map(function (m) { return m[1]; }));
+/* 两位缩进的键行；**不要求**「`{` 之后就是行尾」——正册里有几条作者
+   压在一行里写（`  苏洵: { years: "...", bio: "..." },`），
+   要求行尾就会把它们漏掉，报出来的作者数偏小。 */
+const registeredList = [...authorTxt.matchAll(/^ {2}([\u4e00-\u9fa5]+):\s*\{/gm)].map(function (m) { return m[1]; });
+const registered = new Set(registeredList);
+/* 重复键：JS 不报错（后者覆盖前者），但读的人会以为有两个同名作者 */
+const dupAuthors = registeredList.filter(function (n, i, a) { return a.indexOf(n) !== i; });
 
 /* ---------- 判 ---------- */
 const dupIds = [];
@@ -77,7 +83,8 @@ console.log("id 重复:", dupIds.length ? dupIds.join(" ") : "无");
 console.log("缺标签:", missingTags.length ? missingTags.join(" ") : "无");
 console.log("多余标签（没有对应诗）:", strayTags.length ? strayTags.join(" ") : "无");
 console.log("未登记的作者:", unknownAuthors.length ? unknownAuthors.join(" ") : "无");
+console.log("重复的作者条目:", dupAuthors.length ? [...new Set(dupAuthors)].join(" ") : "无");
 
-const bad = dupIds.length + missingTags.length + strayTags.length + unknownAuthors.length;
+const bad = dupIds.length + missingTags.length + strayTags.length + unknownAuthors.length + dupAuthors.length;
 console.log(bad ? "\n✘ 有 " + bad + " 处需要修" : "\n✔ 四份数据对得上");
 process.exit(bad ? 1 : 0);

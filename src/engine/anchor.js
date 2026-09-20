@@ -73,3 +73,43 @@ export function placePoemList(node) {
   list.style.right = "auto";
   list.style.bottom = "auto";
 }
+
+/* ============================================================
+   地标悬停卡
+   ----------------------------------------------------------
+   贴着珠子浮出，偏向「上侧」——下方要留给地名签，压在名签上会打架。
+   四个方向都夹在视口内，靠近边缘时自动翻到另一侧。
+   窄屏不做悬停（手指没有 hover），由 CSS 直接藏掉。
+   ============================================================ */
+export function placeHover(node) {
+  const el = els.hover;
+  if (!el || !node) return;
+  const map = mapRef.map;
+  if (!map) return;
+
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const pt = map.latLngToContainerPoint([node.lat, node.lng]);
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  /* 水平：优先居中于珠子；越界就贴边 */
+  let left = pt.x - w / 2;
+  left = Math.max(12, Math.min(left, vw - w - 12));
+
+  /* 垂直：优先浮在珠子上方（留出 14px 指向间隙）；
+     上方放不下就翻到下方（让开地名签，再下移 26px）。 */
+  const gap = 14;
+  let top = pt.y - h - gap;
+  let side = "up";
+  if (top < 96) {                       // 96 = 顶栏与题名让位线
+    top = pt.y + gap + 26;
+    side = "down";
+  }
+  top = Math.max(96, Math.min(top, vh - h - 16));
+
+  el.style.left = Math.round(left) + "px";
+  el.style.top = Math.round(top) + "px";
+  el.dataset.side = side;
+  /* 小箭头指向珠子（相对卡片左缘） */
+  const arrowX = Math.round(Math.max(12, Math.min(pt.x - left, w - 12)));
+  el.style.setProperty("--arrow-x", arrowX + "px");
+}

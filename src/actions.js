@@ -12,7 +12,7 @@ import { ATMOSPHERE } from "./engine/atmosphere.js";
 import { getEngine } from "./engine/mapEngine.js";
 import {
   getState, openDetail, openPoemList, locatePoem, closePanel, closeMenu,
-  dismissOverlays, setMotionOn, showToast,
+  dismissOverlays, setMotionOn, showToast, openPanel, toggleSide, setTag,
 } from "./store.js";
 
 /** 点地标：一处多诗先列出来，独此一首直接开抽屉 */
@@ -87,4 +87,28 @@ export function about() {
 /** 关闭右上菜单（各处都会顺手调一下） */
 export function dismissMenu() {
   closeMenu();
+}
+
+/* ---------------- 命令面板用的几个动作 ----------------
+   面板是「一句话就能到任何地方」的入口，所以这些动作要自己把
+   挡路的浮层收干净，不能指望调用方记得。 */
+
+/** 打开索引面板（顺手收起菜单） */
+export function openPanelSafe(mode) {
+  closeMenu();
+  openPanel(mode);
+}
+
+/** 展开 / 收起左侧篇目栏 */
+export function toggleSidebar() {
+  const open = !getState().sideOpen;
+  toggleSide();
+  if (open) MOTION.sideIn();
+}
+
+/** 按主题筛（顺手把面板开到篇目，让人看见筛出了什么） */
+export function focusTag(tag) {
+  closeMenu();
+  setTag(tag);
+  openPanel("list");
 }

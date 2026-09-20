@@ -152,12 +152,23 @@ staged.forEach(function (f) {
 
 if (bad) { console.log("\n有文件解析失败，先修好再跑。"); process.exit(1); }
 
-/* ---------- 去重（对正册已有的 id） ---------- */
+/* ---------- 去重（对正册已有的 id + 已判定的重复清单） ---------- */
 const existingIds = new Set();
 BOOKS.forEach(function (b) {
   const src = read(b.target);
   [...src.matchAll(/^\s*id:\s*"([^"]+)"/gm)].forEach(function (m) { existingIds.add(m[1]); });
 });
+
+/* tools/_new/_drop.json：补编里被判为重复收录的 id。
+   ⚠️ 必须在这里也跳过，否则「合并 → 去重 → 再合并」会把删掉的又加回来
+   （补编的 JSON 还在原地，它们是幂等合并的输入）。 */
+const DROP = (function () {
+  const p = path.join(NEW_DIR, "_drop.json");
+  if (!fs.existsSync(p)) return {};
+  try { return JSON.parse(fs.readFileSync(p, "utf8")).drop || {}; }
+  catch (e) { console.log("✘ _drop.json 解析失败：" + e.message); return {}; }
+})();
+const dropIds = new Set(Object.keys(DROP));
 
 let addedPoems = 0;
 let addedAuthors = 0;
@@ -167,6 +178,7 @@ bookPoems.forEach(function (poems, target) {
   const book = BOOKS.find(function (b) { return b.target === target; });
   let src = read(target);
   const fresh = poems.filter(function (p) {
+    if (dropIds.has(p.id)) return false;
     if (existingIds.has(p.id)) { console.log("跳过重复 id：" + p.id); return false; }
     existingIds.add(p.id);
     return true;
@@ -182,12 +194,25 @@ bookPoems.forEach(function (poems, target) {
 /* ---------- 作者 ---------- */
 {
   let src = read("src/data/authors.js");
-  const have = new Set([...src.matchAll(/^\s{2}([\u4e00-\u9fa5]+):\s*\{\s*$/gm)].map(function (m) { return m[1]; }));
+  /* ⚠️ 判据必须接受**单行写法**。原来写成 `^ {2}名:\s*\{\s*$`（要求 `{` 后
+     直到行尾都是空白），于是 `  苏洵: { years: "...", bio: "..." },` 这种
+     压在一行里的条目一律「看不见」，合并时被当成没登记、又追加了一份，
+     文件里就出现两个一模一样的键（JS 不报错，但读的人会以为有两个苏洵）。 */
+  const have = new Set([...src.matchAll(/^ {2}([\u4e00-\u9fa5]+):\s*\{/gm)].map(function (m) { return m[1]; }));
   const fresh = Object.keys(allAuthors).filter(function (n) {
     if (have.has(n)) return false;
     have.add(n);
     return true;
   });
+  /* 同一批 JSON 里若同一个作者出现两次，上面的 Set 会挡住——
+     但也要挡住「正册已有的」与「本批已写的」以外的情况：这里再查一遍
+     文件里是否已经存在同名键，防止历史遗留的重复被继续放大。 */
+  const dup = [...src.matchAll(/^ {2}([\u4e00-\u9fa5]+):\s*\{/gm)]
+    .map(function (m) { return m[1]; })
+    .filter(function (n, i, a) { return a.indexOf(n) !== i; });
+  if (dup.length) {
+    console.log("⚠ authors.js 里已有重复键（合并时不理会，但建议手工清）：" + [...new Set(dup)].join("、"));
+  }
   if (fresh.length) {
     const block = fresh.map(function (n) { return fmtAuthor(n, allAuthors[n]); }).join("\n");
     src = insertBeforeClose(src, "};", block, "AUTHORS");
@@ -202,6 +227,7 @@ bookPoems.forEach(function (poems, target) {
   let src = read("src/data/tags.js");
   const have = new Set([...src.matchAll(/^\s*"([\w-]+)":\s*\[/gm)].map(function (m) { return m[1]; }));
   const fresh = Object.keys(allTags).filter(function (id) {
+    if (dropIds.has(id)) return false;
     if (have.has(id) || !Array.isArray(allTags[id]) || !allTags[id].length) return false;
     have.add(id);
     return true;

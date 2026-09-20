@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useStore, setQuery, toggleDynasty, toggleForm,
-  toggleMenu, closeMenu, openPanel,
+  toggleMenu, closeMenu, openPanel, openPalette, openHelp,
 } from "../store.js";
 import { selectFiltered } from "../data/select.js";
 import { getState, showToast } from "../store.js";
@@ -118,6 +118,12 @@ export function Tools() {
           })}
         </div>
         <span className="chip-fill" />
+        {/* 命令面板的可见入口：⌘K 这种快捷键，不摆出来就没人会去试 */}
+        <button id="paletteBtn" className="round-btn" type="button"
+          aria-label="命令面板" title="命令面板（⌘K / Ctrl+K）：搜诗词、诗人、地标、主题"
+          onClick={openPalette}>
+          <span className="cmd-glyph" aria-hidden="true">⌘</span>
+        </button>
         <button id="menuBtn" className="round-btn" type="button" aria-label="更多"
           aria-expanded={menuOpen} onClick={toggleMenu}>
           <IconMenu />
@@ -151,6 +157,9 @@ export function MenuPop() {
 
   return (
     <div id="menuPop" className="menu-pop" ref={boxRef} hidden={!menuOpen}>
+      <button type="button" onClick={act(openPalette)}>
+        命令面板 <i>⌘K</i>
+      </button>
       <button type="button" onClick={act(() => openPanel("poet"))}>
         诗人索引 <i>{AUTHOR_COUNT} 位</i>
       </button>
@@ -159,6 +168,9 @@ export function MenuPop() {
         动效 <b id="motionState">{motionOn ? "开" : "关"}</b>
       </button>
       <button type="button" onClick={act(resetView)}>回到全国</button>
+      <button type="button" onClick={act(openHelp)}>
+        快捷键 <i>?</i>
+      </button>
       <button type="button" onClick={act(about)}>关于本图</button>
     </div>
   );

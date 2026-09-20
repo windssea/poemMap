@@ -17,15 +17,14 @@ const DRY = process.argv.indexOf("--dry") !== -1;
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const write = (p, s) => fs.writeFileSync(path.join(ROOT, p), s, "utf8");
 
-/* 要删的 id → 保留的是哪一个（写清楚，免得日后看不懂为什么删它） */
-const DROP = {
-  "shi-zhi-sai-shang": "与 shi-zhi-sai（王维《使至塞上》）重复；保留原有的萧关一处",
-  "chi-bi-huai-gu": "与 chi-bi（杜牧《赤壁》）重复；杜牧所咏即黄州赤壁，保留原有一处",
-  "linjiang-xian-meng-hou": "与 linjiang-xian-xiaogui（晏几道《临江仙》）重复；保留原有汴京一处",
-  "xing-xiang-zi-shu-rao": "与 xing-xiang-zi-cunzhuang（秦观《行香子》）重复；保留原有高邮一处",
-  "tian-xian-zi-shui-diao": "与 tian-xian-zi（张先《天仙子》）重复；两处坐标相同，保留先入的一处",
-  "bu-suan-zi-yan-rui": "与 bu-suan-zi-yanrui（严蕊《卜算子》）重复；保留台州一处",
-};
+/* 要删的 id → 保留的是哪一个。清单放在 tools/_new/_drop.json，
+   apply-new-poems.js 读同一份文件，两边不会走散。 */
+const DROP = (function () {
+  const p = path.join(ROOT, "tools", "_new", "_drop.json");
+  if (!fs.existsSync(p)) return {};
+  try { return JSON.parse(fs.readFileSync(p, "utf8")).drop || {}; }
+  catch (e) { console.log("✘ _drop.json 解析失败：" + e.message); return {}; }
+})();
 
 const FILES = ["src/data/poems.pre.js", "src/data/poems.tang.js", "src/data/poems.song.js"];
 

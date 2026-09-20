@@ -34,6 +34,11 @@ const state = {
   sideOpen: false,         // 左侧篇目栏
   menuOpen: false,         // 右上「更多」菜单
 
+  /* 悬停与浮层 */
+  hoverPlaceId: null,      // 鼠标停在地标上（浮出小卡，替代原生 title）
+  paletteOpen: false,      // ⌘K / Ctrl+K 命令面板
+  helpOpen: false,         // 快捷键速查面板
+
   /* 其他 */
   motionOn: initialMotion(),
   toast: null,             // { msg, at }
@@ -159,6 +164,7 @@ export function dismissOverlays() {
     poemListPlaceId: null,
     detailPoemId: null,
     notesOpen: false,
+    hoverPlaceId: null,
   });
 }
 
@@ -171,6 +177,25 @@ export const toggleSide = () => setState({ sideOpen: !state.sideOpen });
 export const closeSide = () => setState({ sideOpen: false });
 export const toggleMenu = () => setState({ menuOpen: !state.menuOpen });
 export const closeMenu = () => setState({ menuOpen: false });
+
+/* ---------------- 动作：地标悬停 / 命令面板 / 快捷键速查 ----------------
+   悬停卡与命令面板都是「临时浮层」：打开时把别的浮层收掉，
+   免得屏幕上同时叠三层，谁也不好看。 */
+export const setHoverPlace = (id) => setState({ hoverPlaceId: id || null });
+
+export function openPalette() {
+  setState({ paletteOpen: true, menuOpen: false, helpOpen: false, hoverPlaceId: null });
+}
+export const closePalette = () => setState({ paletteOpen: false });
+
+export function togglePalette() {
+  if (state.paletteOpen) closePalette(); else openPalette();
+}
+
+export function openHelp() {
+  setState({ helpOpen: true, paletteOpen: false, menuOpen: false, hoverPlaceId: null });
+}
+export const closeHelp = () => setState({ helpOpen: false });
 
 /* ---------------- 动作：动效 / 提示 / 降载 ---------------- */
 export const setMotionOn = (on) => setState({ motionOn: !!on });

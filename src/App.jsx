@@ -8,7 +8,8 @@
 import { useEffect, useRef } from "react";
 
 import { useStore, getState, setState, closeCard, closeMenu, closeSide, closePoemList,
-  closeDetail, closePanel, openDetail, dismissOverlays, setMotionOn, showToast } from "./store.js";
+  closeDetail, closePanel, openDetail, dismissOverlays, setMotionOn, showToast,
+  togglePalette, closePalette, closeHelp, openHelp } from "./store.js";
 import { useFilteredPoems } from "./hooks/useFiltered.js";
 import { PLACE_BY_ID } from "./data/places.js";
 import { POEM_BY_ID } from "./data/index.js";
@@ -25,8 +26,11 @@ import Sidebar from "./components/Sidebar.jsx";
 import BottomBar from "./components/BottomBar.jsx";
 import Card from "./components/Card.jsx";
 import PoemList from "./components/PoemList.jsx";
+import PlaceHover from "./components/PlaceHover.jsx";
 import Detail from "./components/Detail.jsx";
 import Panel from "./components/Panel.jsx";
+import Palette from "./components/Palette.jsx";
+import Help from "./components/Help.jsx";
 import Toast from "./components/Toast.jsx";
 import { Compass, SideVerse, Zoomer } from "./components/Chrome.jsx";
 import { MapCanvas, Paint, Mount } from "./components/Paint.jsx";
@@ -143,21 +147,40 @@ export default function App() {
     return function () { window.removeEventListener("resize", onResize); clearTimeout(t); };
   }, []);
 
-  /* ---------- 键盘：Esc 逐层收；「/」直接进搜索 ---------- */
+  /* ---------- 键盘：⌘K 命令面板 · ? 快捷键 · Esc 逐层收 ---------- */
   useEffect(function () {
     function onKey(e) {
+      const t = e.target;
+      const typing = !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+
+      /* ⌘K / Ctrl+K：命令面板。这是全局的，输入框里也认——
+         「正在搜索」时想换个入口，不该先按 Esc 退出来。 */
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        togglePalette();
+        return;
+      }
+
+      if (e.key === "?" && !typing && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        openHelp();
+        return;
+      }
+
       /* 「/」是搜索框的通用快捷方式。输入框里、或按着修饰键时不抢。 */
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        const t = e.target;
-        const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
         if (!typing) {
           const q = document.getElementById("q");
           if (q) { e.preventDefault(); q.focus(); q.select(); }
         }
         return;
       }
+
       if (e.key !== "Escape") return;
       const s = getState();
+      /* 从最上面一层往下收 */
+      if (s.paletteOpen) { closePalette(); return; }
+      if (s.helpOpen) { closeHelp(); return; }
       if (s.menuOpen) { closeMenu(); return; }
       if (s.sideOpen) { closeSide(); return; }
       if (s.poemListPlaceId) { closePoemList(); return; }
@@ -199,6 +222,7 @@ export default function App() {
       <Tools />
       <Sidebar />
       <PoemList />
+      <PlaceHover />
       <Card />
       <BottomBar />
       <SideVerse />
@@ -207,6 +231,8 @@ export default function App() {
       <Detail />
       <Panel />
       <MenuPop />
+      <Palette />
+      <Help />
       <Toast />
     </>
   );

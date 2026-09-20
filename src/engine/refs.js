@@ -11,6 +11,7 @@ export const els = {
   card: null,       // #card 元素
   poemList: null,   // #poemList 元素
   sidebar: null,    // #sidebar 元素
+  hover: null,      // #placeHover 地标悬停卡
 };
 
 export const mapRef = { map: null };
