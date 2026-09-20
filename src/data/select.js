@@ -6,12 +6,13 @@
    ============================================================ */
 import { POEMS, POEM_TAGS } from "./index.js";
 import { PLACES } from "./places.js";
+import { inEra } from "./eras.js";
 
 /** 按筛选条件取诗（与旧版 filtered() 完全一致的匹配规则） */
 export function selectFiltered(s) {
   const q = (s.q || "").trim().toLowerCase();
   return POEMS.filter(function (p) {
-    if (s.dynasty !== "全部" && p.dynasty !== s.dynasty) return false;
+    if (!inEra(p.dynasty, s.dynasty)) return false;
     if (s.form !== "全部" && p.form !== s.form) return false;
     if (s.author && p.author !== s.author) return false;
     if (s.tag && (POEM_TAGS[p.id] || []).indexOf(s.tag) === -1) return false;

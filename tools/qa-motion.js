@@ -48,6 +48,14 @@
 
   const out = {};
 
+  /* ---- 0) 等开场真正收尾 ----
+     开场是一条 GSAP 时间线，时长随数据量变（地标越多、点出的那一段越长）。
+     固定延时采样必然不稳：数据一多就拍到「还在动」的那一帧，误报成「卡住」。
+     这里等 motion-prep 摘掉，最多等 4.2 秒（motion.js 里另有 3.2 秒兜底超时）。 */
+  for (let i = 0; i < 60 && document.documentElement.classList.contains("motion-prep"); i++) {
+    await raf(); await sleep(70);
+  }
+
   /* ---- 1) 开场之后：没有东西卡在不可见 ---- */
   out.afterIntro = {
     prep: document.documentElement.classList.contains("motion-prep"),

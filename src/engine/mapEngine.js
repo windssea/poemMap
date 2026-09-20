@@ -356,7 +356,12 @@ export function createEngine(mapEl) {
      ============================================================ */
   function dotHTML(node, active) {
     const many = node.poems.length > 1;
-    return '<span class="dot-wrap' + (active ? " on" : "") + '">' +
+    /* title 是给鼠标的「先看一眼」：悬停就能知道这一处有哪几首，
+       不必先点开浮层再退出来。 */
+    const tip = esc(node.region + "（" + node.name + "）· " + node.poems.length + " 首：") +
+      esc(node.poems.slice(0, 5).map(function (p) { return p.title; }).join("、")) +
+      (node.poems.length > 5 ? esc(" 等") : "");
+    return '<span class="dot-wrap' + (active ? " on" : "") + '" title="' + tip + '">' +
       (active ? '<span class="dot-glow"></span><span class="dot-ring"></span>' : "") +
       '<span class="dot' + (many ? " many" : "") + '"></span>' +
       '<span class="dot-name">' + esc(node.name) +
@@ -421,9 +426,31 @@ export function createEngine(mapEl) {
     });
 
     items.sort(function (a, b) { return b.n.poems.length - a.n.poems.length; });
+
+    /* ---- 珠子去糊 ----
+       收了 280 多首之后，苏杭一带十几个地标挤在几十像素里，远看就是一坨红。
+       这里按「题咏多者优先」逐个占位：与已占位的珠子相撞的，压到半透明。
+       于是同一片密处读出来是**疏密**（谁重谁轻一目了然），而不是一团糊。
+       位置池只在视野内建，缩放放大后自然分开、透明度回到 1。 */
+    const dotBoxes = [];
+    items.forEach(function (o) {
+      const r = o.n.isActive ? 15 : 8.5;
+      const box = { x1: o.x - r, x2: o.x + r, y1: o.y - r, y2: o.y + r };
+      let clash = false;
+      for (let i = 0; i < dotBoxes.length && !clash; i++) {
+        const b = dotBoxes[i];
+        if (!(box.x2 < b.x1 || b.x2 < box.x1 || box.y2 < b.y1 || b.y2 < box.y1)) clash = true;
+      }
+      if (!clash) dotBoxes.push(box);
+      o.recede = clash && !o.n.isActive;
+    });
+
     const boxes = [];
     let shown = 0;
     items.forEach(function (o) {
+      /* 珠子的疏密先落定：放在 label 早退之前，
+         免得某个地标没有名签时珠子透明度就漏更新了。 */
+      if (o.el) o.el.style.opacity = o.recede ? ".52" : "1";
       const label = nameElOf(o.n);
       if (!label) return;
       let on;
@@ -492,12 +519,31 @@ export function createEngine(mapEl) {
   /* ============================================================
      视野
      ============================================================ */
+  /** 把某点放到「画面宽度的 frac 处、高度 46% 处」所需的地图中心。
+      用投影坐标算，比 panBy 的方向约定可靠；frac=0.5 即水平居中。 */
+  function offsetCenter(node, zoom, frac) {
+    const size = map.getSize();
+    const proj = map.project([node.lat, node.lng], zoom);
+    return map.unproject(
+      proj.add([size.x / 2 - size.x * frac, size.y * 0.04]),
+      zoom
+    );
+  }
+
   function fitChina() {
     const sideOpen = document.body.classList.contains("side-open");
     const padLeft = narrow() ? 18 : (sideOpen ? (els.sidebar ? els.sidebar.offsetWidth : 0) + 38 : 18);
+    /* 留白按「界面让位」而非「舒服」来定：
+       上让开题名与筛选条（约 100px）、下让开统计 dock（约 72px）、
+       右让开竖排题词与罗盘（约 92px），左只留裱边。
+       中国轮廓的宽高比约 1.38，在 16:9 屏上永远是「高度先卡住」，
+       所以上下那几十像素直接换成画面大小——松一点，整张图就小一圈。 */
     map.fitBounds(CHINA_BOUNDS, {
-      paddingTopLeft: [padLeft, narrow() ? 128 : 118],
-      paddingBottomRight: [narrow() ? 18 : 100, narrow() ? 88 : 86],
+      /* 窄屏上工具条是两行（搜索 + 筛选），下面还压着统计 dock，
+         上下留白要比桌面端更宽；此时画面其实是**宽度**先卡住，
+         所以这几像素只影响居中，不影响大小。 */
+      paddingTopLeft: [padLeft, narrow() ? 150 : 100],
+      paddingBottomRight: [narrow() ? 18 : 92, narrow() ? 92 : 74],
       animate: false,
     });
     queueLayout();
@@ -586,9 +632,31 @@ export function createEngine(mapEl) {
       const node = PLACE_BY_ID[placeId];
       if (!node) return null;
       const z = Math.max(map.getZoom(), minZoom || 5.6);
-      if (MOTION.on) map.flyTo([node.lat, node.lng], z, { duration: 1.05 });
-      else map.setView([node.lat, node.lng], z, { animate: false });
+      /* 落点偏左：抽屉从右侧盖过来，居中的话地标正好被压住 */
+      const center = offsetCenter(node, z, 0.38);
+      if (MOTION.on) map.flyTo(center, z, { duration: 1.05 });
+      else map.setView(center, z, { animate: false });
       return node;
+    },
+    /** 抽屉打开后把地标挪进「未被遮住的那块画面」。
+        只在它确实被挡住或贴边时才动——点画面正中一个可见的地标，
+        画面不该自己滑一下。 */
+    revealPlace: function (placeId) {
+      const node = PLACE_BY_ID[placeId];
+      if (!node) return;
+      const size = map.getSize();
+      const detail = document.getElementById("detail");
+      const open = detail && detail.classList.contains("on");
+      /* 用 offsetWidth（布局宽）而不是 getBoundingClientRect：
+         抽屉滑入时 transform 还在动，rect.left 是动画中间值。 */
+      const coverLeft = open ? Math.max(0, size.x - detail.offsetWidth) : size.x;
+      const pt = map.latLngToContainerPoint([node.lat, node.lng]);
+      const safeX = coverLeft - 70;
+      if (pt.x > 70 && pt.x < safeX && pt.y > 130 && pt.y < size.y - 96) return;
+      const z = map.getZoom();
+      const center = offsetCenter(node, z, Math.max(0.2, Math.min(0.5, (coverLeft * 0.5) / size.x)));
+      if (MOTION.on) map.flyTo(center, z, { duration: 0.55 });
+      else map.setView(center, z, { animate: false });
     },
     closeAll: function () { dismissOverlays(); },
     invalidate: function () { map.invalidateSize(); },

@@ -4,7 +4,7 @@
    有些操作同时牵动「状态」与「地图」（比如点篇目要飞过去点亮地标），
    集中放这里，组件只管调用，不必知道谁负责哪一半。
    ============================================================ */
-import { POEMS, POEM_BY_ID } from "./data/index.js";
+import { POEMS, POEM_BY_ID, ERA_COUNT, AUTHOR_COUNT, FORM_COUNT } from "./data/index.js";
 import { PLACE_BY_ID, PLACE_COUNT } from "./data/places.js";
 import { selectFiltered } from "./data/select.js";
 import { MOTION } from "./engine/motion.js";
@@ -72,7 +72,16 @@ export function toggleMotion() {
 }
 
 export function about() {
-  showToast("收录 " + POEMS.length + " 首唐宋诗词 · " + PLACE_COUNT + " 处地标 · 全部离线", 3600);
+  const parts = [];
+  if (ERA_COUNT.先唐) parts.push("先唐 " + ERA_COUNT.先唐);
+  parts.push("唐诗 " + (ERA_COUNT.唐 || 0));
+  parts.push("宋词 " + (ERA_COUNT.宋 || 0));
+  showToast(
+    "收录 " + POEMS.length + " 首（" + parts.join(" · ") + "）· " +
+    FORM_COUNT.诗 + " 诗 / " + FORM_COUNT.词 + " 词 · " +
+    PLACE_COUNT + " 处地标 · " + AUTHOR_COUNT + " 位作者 · 全部离线",
+    4800
+  );
 }
 
 /** 关闭右上菜单（各处都会顺手调一下） */

@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const FILES = ["src/data/poems.tang.js", "src/data/poems.song.js"];
+const FILES = ["src/data/poems.pre.js", "src/data/poems.tang.js", "src/data/poems.song.js"];
 const read = function (p) { return fs.readFileSync(path.join(ROOT, p), "utf8"); };
 
 /* ---------- 诗词：id / title / dynasty / author / form / place(+坐标) ---------- */
@@ -65,6 +65,14 @@ const biggest = landmarks.slice().sort(function (a, b) { return b.poems.length -
 console.log("诗词 " + poems.length + " 首 | 地标 " + landmarks.length + " 处（最多 " +
   biggest.poems[0].place + " " + biggest.poems.length + " 首）| 作者 " + registered.size + " 位 | 标签 " + tagged.size + " 条");
 console.log("朝代:", JSON.stringify(count("dynasty")), " 体裁:", JSON.stringify(count("form")));
+/* 时代组：与 src/data/eras.js 的 ERAS 同一套口径（先唐管先秦/汉/魏晋/南北朝） */
+const ERA_OF = { 先秦: "先唐", 汉: "先唐", 魏晋: "先唐", 南北朝: "先唐", 唐: "唐", 宋: "宋" };
+const eras = {};
+poems.forEach(function (p) {
+  const e = ERA_OF[p.dynasty] || p.dynasty;
+  eras[e] = (eras[e] || 0) + 1;
+});
+console.log("时代组:", JSON.stringify(eras));
 console.log("id 重复:", dupIds.length ? dupIds.join(" ") : "无");
 console.log("缺标签:", missingTags.length ? missingTags.join(" ") : "无");
 console.log("多余标签（没有对应诗）:", strayTags.length ? strayTags.join(" ") : "无");

@@ -1,8 +1,10 @@
 # 中华诗词地图 · 唐风宋韵
 
-一个面向青少年儿童的中国诗词地图网页。青绿山水长卷上标注唐诗宋词的诞生地标，
+一个面向青少年儿童的中国诗词地图网页。青绿山水长卷上标注先秦至宋的诗词诞生地标，
 点击地标即弹出竖排诗词卡（右起，与古籍一致），再看右侧磨砂玻璃抽屉里的标签、
 诗意简析与完整注释。
+
+收录 **281 首**（先唐 18 · 唐 123 · 宋 140），落在 **141 处**地标上。
 
 **全部离线**：地图、诗词、作者、标签、素材均为本地文件，跑起来后**零外部请求**
 （无瓦片、无 CDN、无字体外链）。用 `CDP_VERBOSE=1` 可以把页面全部网络请求打出来核对——
@@ -52,7 +54,7 @@ Three.js 管着 WebGL 上下文。让它们走 React 的 diff 只会带来双重
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
 | 状态 | `src/store.js` | `getState / subscribe / useStore(key)`；所有动作是纯函数式 `setState` |
-| 数据 | `src/data/` | 诗词、作者、标签、省界、地标聚合、筛选纯函数（`selectFiltered`） |
+| 数据 | `src/data/` | 诗词、作者、标签、省界、地标聚合、朝代↔时代组映射、筛选纯函数（`selectFiltered`） |
 | 引擎 | `src/engine/` | 地图、云气、动效、山体、定位——命令式单例 |
 | 界面 | `src/components/` | 12 个组件，各管一块，不碰引擎内部 |
 | 动作 | `src/actions.js` | 同时牵动「状态 + 地图」的跨层操作（点地标、飞过去、换一批） |
@@ -74,9 +76,11 @@ poemMap/
 │   ├── actions.js          跨层动作
 │   ├── devtools.js         开发期诊断钩子（仅 DEV 生效，生产被 tree-shake）
 │   ├── data/
-│   │   ├── index.js        聚合入口：POEMS / POEM_BY_ID / tagsOf / 计数
+│   │   ├── index.js        聚合入口：POEMS / POEM_BY_ID / tagsOf / 时代组与体裁计数
+│   │   ├── eras.js         朝代 ↔ 时代组的映射（先唐一个按钮管先秦/汉/魏晋/南北朝）
+│   │   ├── poems.pre.js    先唐诗词数据（先秦 · 汉 · 魏晋 · 南北朝）
 │   │   ├── poems.tang.js   唐诗数据
-│   │   ├── poems.song.js   宋词数据（含苏轼 37 首）
+│   │   ├── poems.song.js   宋词数据（含苏轼 38 首）
 │   │   ├── authors.js      作者资料库（生卒年 + 简介）
 │   │   ├── tags.js         每首诗的主题标签（行旅/山水/登临…）
 │   │   ├── china.geo.js    中国省界离线数据（368 KB）
@@ -102,10 +106,22 @@ poemMap/
 ├── tools/                  构建与调试工具（站运行时不依赖）
 │   ├── build.js            生产构建（`node tools/build.js`；长命令行在本机 shell 里偶发被截断）
 │   ├── port-to-esm.js      一次性迁移脚本（旧全局脚本 → src/ 下的 ESM，逐字段校验）
+│   ├── apply-new-poems.js  把 tools/_new/*.json 的补编生成 JS 源码并追加进正册（幂等）
+│   ├── qa-data.js          补编质检：重复收录 / 坐标越界 / 地标过近 / 同名异地
+│   ├── dedupe-data.js      删掉分批并行写重复收录的那些条目（连同标签）
+│   ├── recover-from-dist.js 应急：从旧构建产物里把诗词/作者/标签三段字面量捞回来
+│   ├── check-syntax.js     数据文件的语法与编码体检（BOM / 替换字符 / 条目数）
+│   ├── list-places.js      列出已收录地标（按省分组）与全部 id，补编前查重用
+│   ├── show-poem.js        按 id 或地标名列出条目摘要
+│   ├── stats.js            各朝代 / 体裁 / 指定作者的首数（核对文档里的数字）
 │   ├── cdp.js              无头 Chrome 验证器（取数 / 截图 / 模拟移动端与减弱动效）
 │   ├── steps/              可组合的「准备步骤」（async，等 React 提交两帧再继续）
 │   │   ├── _pre.js         公共工具（__raf/__wait/__click/__press/__marker/__pick/__state）
 │   │   ├── view.js         把地图移到指定视野（`CDP_STEP_ARG="lat|lng|zoom"`，截图前用）
+│   │   ├── settle.js       等开场动效走完再截图（cdp.js 只等 2.5s，开场约 2.7s）
+│   │   ├── chip.js         点筛选条上某个时代组/体裁（`CDP_STEP_ARG=先唐|唐诗|宋词|诗|词`）
+│   │   ├── panel.js        打开索引面板（`CDP_STEP_ARG=poet|theme`）
+│   │   ├── marker.js       点某个地标（按地名签文字模糊匹配）
 │   │   └── place / pick / detail / notes / cardclick / detailclick / side / sideclick
 │   ├── probes/             单条量测表达式（几何 / 性能 / 交互延迟 / 关闭路径）
 │   │   ├── card-center.js    卡片是否居中、是否竖排右起
@@ -136,28 +152,32 @@ poemMap/
 
 **第一步**：作者登记在 `src/data/authors.js`。
 
-**第二步**：在 `src/data/poems.tang.js` / `poems.song.js` 数组末尾追加：
+**第二步**：在 `src/data/poems.pre.js` / `poems.tang.js` / `poems.song.js` 数组末尾追加：
 
 ```js
 {
   id: "liangzhou-ci-wangzhihuan",   // 全局唯一
   title: "凉州词",
-  dynasty: "唐",                     // 唐 | 宋
+  dynasty: "唐",                     // 先秦 | 汉 | 魏晋 | 南北朝 | 唐 | 宋
   author: "王之涣",                   // 必须在 authors.js 中存在
   form: "诗",                        // 诗 | 词
   place: {
     name: "凉州",                    // 地标名，显示在地图上
-    region: "甘肃 · 武威",            // 今属地区
+    region: "甘肃 · 武威",            // 今属地区（省份不带「省」字）
     lat: 37.93, lng: 102.64,        // 纬度 / 经度（WGS-84）
     origin: "盛唐边塞诗代表作……"      // 写作背景（可留空）
   },
   lines: ["黄河远上白云间，", "一片孤城万仞山。", "羌笛何须怨杨柳，", "春风不度玉门关。"],
   prologue: "",                      // 词的小序（可省略）
-  tr: "黄河好像从远方的白云间奔流而来……",   // 白话译文（卡片「诗意简析」用）
+  tr: "黄河好像从远方的白云间奔流而来……",   // 白话译文（「诗意简析」用）
   notes: [["羌笛", "古代西部羌族吹奏的管乐器。"]],
   appr: "以壮阔苍凉的边塞图景写戍人哀怨……"
 }
 ```
+
+> ⚠️ 正册里**最后一条没有尾逗号**（`  }\n];`）。手改大文件时最容易在这里翻车，
+> 所以一次补几十首请走 `tools/apply-new-poems.js`（由 JSON 生成源码，语法由生成器保证），
+> 改完跑一遍 `node tools/check-syntax.js` 体检。
 
 **第三步**（可选）：在 `src/data/tags.js` 里给这首诗加主题标签：
 
@@ -166,6 +186,8 @@ poemMap/
 ```
 
 保存即热更新，页面上立刻出现——**不需要重新构建**。
+新增了 `dynasty` 是先秦/汉/魏晋/南北朝的诗时，界面上的「先唐」时代组与页签会自动出现
+（判据是全量计数，见 `src/data/eras.js`），不用改任何组件。
 
 ### 地标自动合并规则
 两首诗坐标相差小于 0.15°（纬度）与 0.2°（经度）时视为同一地标，地图上只出现一枚小筑，
@@ -177,15 +199,16 @@ poemMap/
 
 | 设计稿元素 | 实现位置 |
 | --- | --- |
+| 四边手卷裱边（两道细金线 + 四角包角） | `#mount`、`.mt-corner`（`components/Paint.jsx`） |
 | 左上朱印「诗」+ 标题 + 竖排小联 | `#brand`、`.seal-big`、`.couplet` |
-| 右上搜索框（末端山形标记） | `#tools .search`、`.search-mark` |
-| 筛选条（全部/唐诗/宋词 ｜ 全部/诗/词）+ 更多菜单 | `.chipbar`、`#chipsDynasty`、`#chipsForm`、`#menuBtn` |
-| 左侧篇目栏（**默认收起**，由左下 dock 唤出） | `#sidebar`、`#tabs`、`#list` |
+| 右上搜索框（末端山形标记 + 「/」快捷键提示） | `#tools .search`、`.search-mark`、`.q-kbd` |
+| 筛选条（全部/先唐/唐诗/宋词 ｜ 全部/诗/词）+ 更多菜单 | `.chipbar`、`#chipsDynasty`、`#chipsForm`、`#menuBtn` |
+| 左侧篇目栏（**默认收起**，由左下 dock 唤出；页签右端带「N 首」实时计数） | `#sidebar`、`#tabs`、`.tabs-n`、`#list` |
 | 篇目行：篇名 / 唐·李白 / 📍地名 / 箭头 | `#list .item` |
-| 左下统计 dock：篇目开关 + 唐宋计数 + N 首/N 地 + 换一批 | `#bottomBar`、`#sideToggle`、`#shuffleBtn` |
+| 左下统计 dock：篇目开关 + **当前筛选下**的 古诗/唐诗/宋词 首数 + N 首/N 地 + 换一批 | `#bottomBar`、`#sideToggle`、`#shuffleBtn` |
 | 多诗地标：高透玻璃感磨砂浮层列表 | `#poemList`、`.pl-head`、`.pl-item` |
 | 中央诗词卡（**居中**、**一律竖排右起**，宽随句数伸缩、高不超屏） | `#card`、`#cardPoem`、`#cardOthers` |
-| 右侧**磨砂玻璃**详情抽屉（宽随诗长，上下同宽；竖排诗 + 注释 / 赏析 / 写作背景 / 作者） | `#detail`、`.d-col`、`#dPoem`、`#dMore` |
+| 右侧**磨砂玻璃**详情抽屉（宽随诗长，上下同宽；竖排诗 + 注释 / 赏析 / 写作背景 / 作者 / **落款**） | `#detail`、`.d-col`、`#dPoem`、`#dMore`、`.d-colophon` |
 | 诗人 / 主题索引面板 | `#panel` |
 | 右缘竖排「诗在山河间／山河亦成诗」 | `#sideVerse` |
 | 罗盘 · 缩放 | `#compass`、`#zoomer` |
@@ -204,10 +227,27 @@ poemMap/
 | `Detail` | `components/Detail.jsx` | 磨砂玻璃详情抽屉 |
 | `Panel` | `components/Panel.jsx` | 诗人 / 主题索引面板 |
 | `Chrome` | `components/Chrome.jsx` | 右缘竖排诗句、罗盘、缩放 |
-| `Paint` | `components/Paint.jsx` | 地图容器 + 四边点景覆盖层 |
+| `Paint` | `components/Paint.jsx` | 地图容器 + 四边点景覆盖层 + 手卷装裱框 `Mount` |
 | `Toast` | `components/Toast.jsx` | 吐司提示 |
 
 ### 交互要点
+- **装裱**：整屏地图外面套一圈「手卷裱边」（`#mount`，inset 11px 的两道细金线 + 四角包角）。
+  它不填色、只描线，层级 590——压在地图与云气之上、全部界面之下，所以题名、筛选条、底栏
+  仍压在框上，框只负责把画面收拢，让左右那两片米白读成「裱边」而不是「没画满」。
+- **取景**：`fitChina()` 的留白按「界面让位」定（上 100 / 下 74 / 右 92），
+  中国轮廓宽高比约 1.38，16:9 屏上永远高度先卡住，所以上下那几十像素直接换成画面大小。
+- **珠子去糊**：收了 280 多首之后，苏杭一带十几个地标挤在几十像素里。`layoutLabels()` 里
+  按「题咏多者优先」逐个占位，与已占位珠子相撞的压到 `opacity .52`——
+  同一片密处读出来是**疏密**（谁重谁轻一目了然），而不是一团糊。放大后自然分开、回到不透明。
+- **地标不许被抽屉压住**：抽屉一开，`engine.revealPlace()` 检查该地标是否落在
+  「没被抽屉挡住的那块画面」里；被挡住或贴边才 `flyTo` 挪一下，画面正中一个可见的地标
+  不会让画面自己滑。判据用 `detail.offsetWidth`（布局宽）而不是 `getBoundingClientRect()`——
+  抽屉滑入时 transform 还在动，rect.left 是动画中间值。
+- **长诗「展卷」**：竖排右起，第一列在最右、未读的部分落在左边，所以 `#dPoem.scrollable`
+  只在**左缘**渐隐（右缘渐隐会把诗的开头糊掉），并浮出一句「展卷 · 左右拖动读全文」。
+  短诗不挂这个类，一点不受影响。
+- **落款**：抽屉是一张竖长的纸，短诗读完之后下面会剩一大片空，空着像「没加载完」。
+  卷尾给一道细线 + 一枚朱印 + 一行小字收束（`.d-colophon`），顺带把全库规模写在这里。
 - **窄屏（≤820px）没有「中央卡片」这一步**：手机上一屏本就窄，卡片再弹一次只是一层遮挡，
   所以点地标、点篇目、点索引、浮层里选一首、随机一首——凡是「打开某一首诗」的入口，
   在窄屏一律**直接进右侧抽屉**；关掉抽屉就回到地图，不会又冒出卡片。
@@ -362,6 +402,9 @@ React 化之后新增的几条（避免「一改状态就整片重渲染」）�
 | 每帧 `querySelector` 找地名签 | 平移时每帧几十次 DOM 查询 | 元素引用缓存在 marker 对象上（`n.__nameEl`） |
 | 地名签每帧铺一遍 | 平移时布局抖动 | `move zoom` 里每两帧铺一次（`frameTick % 2`） |
 | 打包把 three 也塞进首屏 | 首屏要多下 600 KB 才见到地图 | `manualChunks` 拆出 `leaflet` / `three`，地图先到，云气后到 |
+| **开场动过 `#bottomBar` 后没清内联样式** | GSAP 写上 `opacity:1`，`body.panel-open #bottomBar{opacity:0}` 再也盖不过它——索引面板滑出时底栏赖着不走；`.search` 上的 `transform` 同理，把 `:hover` 一并吃掉 | 开场时间线 `onComplete` 里 `clearProps` 掉 `.seal-big/.b-text */.couplet/.search/.chipbar/#bottomBar/#sideVerse/#compass/#zoomer/#paint`（`motion.js` 的 `clearIntroProps()`） |
+| **开场时长跟着数据量一起长** | `stagger: { each: 0.011 }` 写死，收 197 首是 2.2 秒、收 400 首就 4.4 秒 | 步长按地标数反算：`each = clamp(2.2 / markers.length, 0.004, 0.014)` |
+| **Vite 的 watcher 追进原子写的临时目录** | 编辑器/工具在 `src/` 下建 `.xxx.<pid>.<uuid>.tmpdir/` 再 rename，chokidar 跟进去时目录已被删，整个 dev server 抛 `EBUSY` 直接退出 | `vite.config.mjs` 的 `server.watch.ignored` 排除 `**/.*.tmpdir/**` |
 
 ### 卡片为什么会「闪一下」——中间态比性能更值得防
 
@@ -413,14 +456,44 @@ t0 与 t1 之间浏览器已经画了一帧，于是闪现；又因为卡片 `on
 
 | 项目 | 数量 |
 | --- | --- |
-| 诗词 | 181 首（唐 83 · 宋 98） |
-| 体裁 | 诗 111 · 词 70 |
-| 作者 | 66 位（含生卒年与简介） |
-| 苏轼 | 37 首（词 34 · 诗 3） |
-| 地标 | 77 处（一处多诗已合并，最多黄州 14 首） |
-| 标签 | 181 首全部标注（2–3 个主题词） |
+| 诗词 | 281 首（先唐 18 · 唐 123 · 宋 140） |
+| 体裁 | 诗 177 · 词 104 |
+| 作者 | 113 位（含生卒年与简介） |
+| 苏轼 | 39 首 |
+| 地标 | 141 处（一处多诗已合并，最多越州永兴 16 首） |
+| 标签 | 281 首全部标注（2–3 个主题词） |
 
-补编的 28 首（唐诗 16 · 宋词 12）尽量挑「能开出新地标」的：溧阳、雁门关、荆州、睢阳、秦州、秋浦、宣州、受降城、郴州旅舍、当涂、乌江、安仁——地图上因此多了十二处点位，而不只是往黄州、杭州里再塞几首。数据的一致性（id 唯一、每首诗都有标签、作者都已登记）用 `node tools/check-data.js` 复核。
+### 时代组：为什么筛选条上是「先唐」而不是四个朝代
+
+数据里的 `dynasty` 是**具体朝代**（先秦 / 汉 / 魏晋 / 南北朝 / 唐 / 宋），
+界面上的按钮却是**时代组**——「先唐」一个按钮管住前四个。映射写在
+`src/data/eras.js`，筛选逻辑（`selectFiltered`）与界面都只认时代组的键。
+理由是筛选条只有 400 多像素，四个小朝代并排会把「唐诗 / 宋词」两个主角挤没。
+
+`eras.js` 里 `ERAS` 的顺序即界面顺序（全部 → 先唐 → 唐诗 → 宋词，与时间轴一致）；
+`先唐` 那一格在**全库没有先唐作品时会自动隐藏**（判据用全量计数而不是当前筛选结果——
+否则一筛到唐诗，这个页签自己就消失，再也切不回去）。
+
+### 补编是怎么进来的
+
+一次补了 84 首（先唐 18 · 唐 32 · 宋 34），分册生成、再合并：
+
+```bash
+# 1. 补编内容先落在 tools/_new/*.json（严格 JSON，便于校验与回滚）
+# 2. 由 JSON 生成 JS 源码，插到正册数组末尾——语法由生成器保证，不手改大文件
+node tools/apply-new-poems.js            # 加 --dry 只看会写什么
+# 3. 质检
+node tools/check-data.js                 # 四份文件对不对得上
+node tools/qa-data.js                    # 重复收录 / 坐标越界 / 地标过近 / 同名异地
+```
+
+补编是分批并行写的，两批各写了一次同一首名篇（id 不同、题名+作者相同），
+`qa-data.js` 的①就是查这个；查出来之后用 `tools/dedupe-data.js` 删掉多余的那一份
+（保留正册原有的那一份，它的地标位置早先核过）。
+
+> `tools/recover-from-dist.js` 是应急用的：正册里若有一批未提交的改动被覆盖，
+> 而 `dist/` 里恰好有一次覆盖之前的构建，就能从产物里把诗词/作者/标签三段
+> 字面量按「找锚点 + 括号配平」原样捞回来。这次补编真的用上了它。
 
 ---
 
@@ -458,18 +531,27 @@ t0 与 t1 之间浏览器已经画了一帧，于是闪现；又因为卡片 `on
 - **`data/` `js/` `vendor/` 已废弃**：React 化之前的全局脚本实现（`js/app.js` 那套），
   逻辑与数据都已迁进 `src/`，`index.html` 不再引用。保留只为对照与回滚。
 - **可扩展**：拼音注音（在 `lines` 旁加 `pinyin` 数组）、Web Speech 朗读、更多朝代
-  （`dynasty` 为自由字段，需同步增加筛选按钮）。
+  （`dynasty` 是自由字段；新增一整段时代只需在 `src/data/eras.js` 的 `ERA_OF` /
+  `DYNASTIES_OF` / `ERAS` 各补一行，筛选条、篇目栏页签、索引面板会一起跟上）。
 - **换更精细的省界**：替换 `tools/china-raw.json` 后运行 `node tools/build-geo.js`，
   产物写进 `src/data/china.geo.js`。
-- **再补诗词**：追加到 `src/data/poems.song.js` 末尾（注意上一条 `}` 后要有逗号），
-  再到 `src/data/tags.js` 补标签即可。
+- **再补诗词**：写进 `tools/_new/*.json` 再 `node tools/apply-new-poems.js`，
+  然后 `check-data` + `qa-data` + `check-syntax` 三连。手改正册也可以，但注意尾逗号
+  （见第四节）。
+- **`tools/_new/`**：补编的暂存区（严格 JSON）。合并是幂等的，重复跑只会跳过已存在的 id，
+  所以这批文件留着当「这批诗是怎么进来的」的凭据；不想要可以整个删掉，不影响站点。
 
 ### 验证方式（无需外部浏览器）
 
 ```bash
 npm run dev                                      # 起服务（或 npm run build && npm run preview 验生产版）
-node tools/check-ranges.js                       # 校验山系的位置与尺度（离线，不开浏览器）
 node tools/check-data.js                         # 校验诗词/标签/作者/地标数（离线）
+node tools/qa-data.js                            # 补编质检：重复收录 / 坐标越界 / 地标过近 / 同名异地（离线）
+node tools/check-syntax.js src/data/poems.tang.js src/data/poems.song.js src/data/poems.pre.js
+node tools/list-places.js                        # 已收录地标（按省分组）+ 全部 id，补编前查重
+node tools/show-poem.js --place=洞庭湖            # 某地标名下的所有诗
+node tools/stats.js 苏轼 李白                     # 各朝代/体裁/指定作者的首数
+node tools/check-ranges.js                       # 校验山系的位置与尺度（离线，不开浏览器）
 node tools/cdp.js http://127.0.0.1:5179/ a.png 7000        # 截图
 node tools/cdp.js http://127.0.0.1:5179/ --eval "@tools/qa-motion.js" 8000   # 动效与交互自检
 CDP_REDUCED=1 node tools/cdp.js ...              # 模拟「减弱动效」
@@ -478,6 +560,14 @@ CDP_VERBOSE=1 node tools/cdp.js ...              # 打印网络请求，核对�
 CDP_SCROLLBARS=1 node tools/cdp.js ...           # 不隐藏滚动条（量「滚动条占位」引起的跳动）
 CDP_INJECT=xx.js node tools/cdp.js ...           # 导航前注入脚本（从第 0 帧起采样布局时序）
 ```
+
+> **截图要先等开场**：`cdp.js` 在 `load` 之后只等 `min(2500, waitMs)`，而开场时间线约 2.7 秒，
+> 直接截图会拍到「题名还没浮出来」的那一帧（整片空白）。加一步 `tools/steps/settle.js` 补上等待：
+>
+> ```bash
+> CDP_SETUP=tools/steps/_pre.js,tools/steps/settle.js \
+>   node tools/cdp.js http://127.0.0.1:5179/ shots/home.png 6000
+> ```
 
 **多步操作**（点地标 → 浮层选诗 → 开详情…）用可组合的 `tools/steps/`。
 React 的渲染是异步的，这些步骤写完会**等两帧**再交还控制权，所以不会踩到「刚点完就去找元素」的坑。

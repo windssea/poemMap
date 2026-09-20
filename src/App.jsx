@@ -29,7 +29,7 @@ import Detail from "./components/Detail.jsx";
 import Panel from "./components/Panel.jsx";
 import Toast from "./components/Toast.jsx";
 import { Compass, SideVerse, Zoomer } from "./components/Chrome.jsx";
-import { MapCanvas, Paint } from "./components/Paint.jsx";
+import { MapCanvas, Paint, Mount } from "./components/Paint.jsx";
 
 /* 深链解析：#/p/<id> → 把地图挪到该诗所在的地标，并打开详情抽屉。
    初次加载与后续 hashchange 共用一份逻辑。 */
@@ -43,7 +43,8 @@ function openFromHash(engine) {
     engine.map.setView([node.lat, node.lng], 6, { animate: false });
     engine.map.fire("moveend");
   }
-  openDetail(p.id);
+  /* 顺手点亮它所在的地标：深链进来也该看到「是哪一处」 */
+  openDetail(p.id, node ? node.id : undefined);
 }
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
   const sideOpen = useStore("sideOpen");
   const detailPoemId = useStore("detailPoemId");
   const poemListPlaceId = useStore("poemListPlaceId");
+  const panel = useStore("panel");
   const list = useFilteredPoems();
 
   /* ---------- 启动：地图 → 动效 → 云气 → 开场 ---------- */
@@ -85,10 +87,16 @@ export default function App() {
     return function () { window.removeEventListener("hashchange", onHash); };
   }, []);
 
-  /* ---------- body 上的两个状态类 ---------- */
+  /* ---------- body 上的三个状态类 ---------- */
   useEffect(function () {
     document.body.classList.toggle("side-open", sideOpen);
   }, [sideOpen]);
+
+  /* 索引面板从左滑出，会把左下统计 dock 整条盖掉一半——
+     挂个类让 dock 整体退场，比露半截干净。 */
+  useEffect(function () {
+    document.body.classList.toggle("panel-open", panel);
+  }, [panel]);
 
   /* ---------- 地址栏与抽屉同步 ---------- */
   useEffect(function () {
@@ -135,9 +143,19 @@ export default function App() {
     return function () { window.removeEventListener("resize", onResize); clearTimeout(t); };
   }, []);
 
-  /* ---------- 键盘：Esc 逐层收 ---------- */
+  /* ---------- 键盘：Esc 逐层收；「/」直接进搜索 ---------- */
   useEffect(function () {
     function onKey(e) {
+      /* 「/」是搜索框的通用快捷方式。输入框里、或按着修饰键时不抢。 */
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const t = e.target;
+        const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+        if (!typing) {
+          const q = document.getElementById("q");
+          if (q) { e.preventDefault(); q.focus(); q.select(); }
+        }
+        return;
+      }
       if (e.key !== "Escape") return;
       const s = getState();
       if (s.menuOpen) { closeMenu(); return; }
@@ -174,6 +192,7 @@ export default function App() {
     <>
       <MapCanvas mapRef={mapEl} />
       <Paint />
+      <Mount />
       <div id="atmosphere" ref={atmoEl} aria-hidden="true" />
 
       <Brand />

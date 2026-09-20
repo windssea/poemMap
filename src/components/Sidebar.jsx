@@ -8,17 +8,15 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import { useStore, toggleDynasty } from "../store.js";
 import { placeText } from "../data/select.js";
+import { ERAS } from "../data/eras.js";
+import { ERA_COUNT } from "../data/index.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
 import { THUMBS } from "../engine/thumbs.js";
 import { els } from "../engine/refs.js";
 import { goToPoem } from "../actions.js";
 import { IconChevron, IconPin } from "./icons.jsx";
 
-const TABS = [
-  { val: "全部", label: "全部" },
-  { val: "唐", label: "唐诗" },
-  { val: "宋", label: "宋词" },
-];
+const TABS = ERAS;
 
 /* 小景：一首诗一辈子只画一次 */
 const thumbCache = new Map();
@@ -68,7 +66,12 @@ export default function Sidebar() {
   return (
     <aside id="sidebar" ref={ref} aria-label="篇目索引">
       <div className="tabs" id="tabs" role="group" aria-label="按朝代筛选">
-        {TABS.map(function (t) {
+        {TABS.filter(function (t) {
+          /* 先唐页签只在全库真有先唐作品时出现。
+             判据必须用全量计数而不是当前筛选结果——否则一筛到唐诗，
+             这个页签自己就消失，再也切不回去。 */
+          return t.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
+        }).map(function (t) {
           return (
             <button key={t.val} type="button" data-val={t.val}
               aria-pressed={dynasty === t.val}
@@ -77,6 +80,7 @@ export default function Sidebar() {
             </button>
           );
         })}
+        <span className="tabs-n" title="当前筛选下的篇目数">{list.length} 首</span>
       </div>
 
       <div className="side-list" id="list">

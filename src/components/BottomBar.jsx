@@ -1,22 +1,41 @@
 /* ============================================================
    左下：收录统计 dock（含「篇目」开关）
    ----------------------------------------------------------
-   唐/宋首数是**全量**统计，首/地两数是**当前筛选**下的结果。
+   唐 / 宋 / 先唐 三个数是**当前筛选下**的结果，与「N 首 / N 地」
+   同源——所以筛到宋词时唐那一格会自然归零并收起，而不是杵在那里
+   显示一个永远不变的 91。全量规模放进 title 与「关于本图」里说。
    ============================================================ */
 import { useStore, toggleSide } from "../store.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
 import { visiblePlaceIds } from "../data/select.js";
-import { DYNASTY_COUNT } from "../data/index.js";
+import { ERA_COUNT } from "../data/index.js";
+import { ERAS, inEra } from "../data/eras.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { MOTION } from "../engine/motion.js";
 import { pickRandom } from "../actions.js";
 import { IconList, IconShuffle } from "./icons.jsx";
+
+/* 展示顺序固定为 先唐 → 唐 → 宋，与时间轴一致 */
+const SHOWN = ERAS.filter(function (e) { return e.val !== "全部"; });
 
 export default function BottomBar() {
   const sideOpen = useStore("sideOpen");
   const motionOn = useStore("motionOn");
   const list = useFilteredPoems();
   const places = visiblePlaceIds(list).size;
+
+  /* 当前筛选下各时代组的首数（未筛时为全量）。
+     朱印给时代、小字给体裁——「唐 + 诗 + 91」读作「唐诗 91」，
+     「古 + 诗 + 18」读作「古诗 18」，与旧版的读法一致。 */
+  const perEra = SHOWN.map(function (e) {
+    return {
+      val: e.val,
+      seal: e.val === "先唐" ? "古" : e.val,
+      unit: e.val === "宋" ? "词" : "诗",
+      label: e.label,
+      n: list.filter(function (p) { return inEra(p.dynasty, e.val); }).length,
+    };
+  }).filter(function (e) { return e.n > 0; });
 
   /* 开场时数字从 0 滚上来（只在首次挂载，与旧版一致） */
   const poemsShown = useCountUp(list.length, motionOn);
@@ -36,9 +55,20 @@ export default function BottomBar() {
         <span>篇目</span>
       </button>
 
-      <span className="bs"><i className="seal-s">唐</i><em>诗</em><b id="cntTang">{DYNASTY_COUNT.tang}</b></span>
-      <span className="bs"><i className="seal-s">宋</i><em>词</em><b id="cntSong">{DYNASTY_COUNT.song}</b></span>
-      <span className="bs-counts">
+      {perEra.map(function (e) {
+        return (
+          <span className="bs" key={e.val}
+            title={e.label + " " + e.n + " 首（当前筛选）"}>
+            <i className="seal-s">{e.seal}</i>
+            <em>{e.unit}</em>
+            {/* key 挂在数字上：数值一变 React 换掉这个节点，
+                CSS 的 bsTick 于是重新播一次，读的人能看见「数变了」 */}
+            <b key={e.n}>{e.n}</b>
+          </span>
+        );
+      })}
+
+      <span className="bs-counts" title={"当前筛选：" + list.length + " 首 / " + places + " 处地标"}>
         <b id="statPoems">{poemsShown}</b><i>首</i>
         <b id="statPlaces">{placesShown}</b><i>地</i>
       </span>
@@ -47,7 +77,10 @@ export default function BottomBar() {
         <IconShuffle />
         <span>换一批</span>
       </button>
-      <span className="bs-hint">点亮地标，读一首诗</span>
+      <span className="bs-hint"
+        title={"全库 " + (ERA_COUNT.先唐 || 0) + " 首先唐 · " + (ERA_COUNT.唐 || 0) + " 首唐诗 · " + (ERA_COUNT.宋 || 0) + " 首宋词"}>
+        点亮地标，读一首诗
+      </span>
     </div>
   );
 }

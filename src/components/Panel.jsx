@@ -4,12 +4,16 @@
 import { useStore, closePanel, toggleDynasty, toggleForm, setAuthor, setTag, clearFacets } from "../store.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
 import { placeText, poetIndex, themeIndex } from "../data/select.js";
-import { AUTHORS } from "../data/index.js";
+import { AUTHORS, ERA_COUNT } from "../data/index.js";
+import { ERAS } from "../data/eras.js";
 import { goToPoem } from "../actions.js";
 import { IconChevron, IconClose } from "./icons.jsx";
 
 const TITLES = { list: "篇目", poet: "诗人", theme: "主题" };
-const DYNASTIES = ["全部", "唐", "宋"];
+/* 与筛选条同一套时代组；先唐只在真有作品时出现 */
+const DYNASTIES = ERAS.filter(function (e) {
+  return e.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
+});
 const FORMS = ["全部", "诗", "词"];
 
 function Row({ poem, on }) {
@@ -141,10 +145,13 @@ function Chips({ values, cur, onPick }) {
   return (
     <>
       {values.map(function (v) {
+        /* 时代组传的是 { val, label }，体裁传的是裸字符串 */
+        const val = typeof v === "string" ? v : v.val;
+        const label = typeof v === "string" ? v : v.label;
         return (
-          <button type="button" key={v} data-val={v} aria-pressed={v === cur}
-            onClick={() => onPick(v)}>
-            {v}
+          <button type="button" key={val} data-val={val} aria-pressed={val === cur}
+            onClick={() => onPick(val)}>
+            {label}
           </button>
         );
       })}

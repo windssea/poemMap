@@ -9,14 +9,13 @@ import {
 import { selectFiltered } from "../data/select.js";
 import { getState, showToast } from "../store.js";
 import { resetView, toggleMotion, about } from "../actions.js";
-import { AUTHOR_COUNT } from "../data/index.js";
+import { AUTHOR_COUNT, ERA_COUNT } from "../data/index.js";
+import { ERAS } from "../data/eras.js";
 import { IconClose, IconMenu, IconSearch } from "./icons.jsx";
 
-const DYNASTIES = [
-  { val: "全部", label: "全部" },
-  { val: "唐", label: "唐诗" },
-  { val: "宋", label: "宋词" },
-];
+/* 朝代筛选按「时代组」给：先唐一个按钮管住先秦/汉/魏晋/南北朝，
+   免得四个小朝代把唐诗宋词挤下去。顺序与时间轴一致。 */
+const DYNASTIES = ERAS;
 const FORMS = [
   { val: "全部", label: "全部" },
   { val: "诗", label: "诗" },
@@ -83,6 +82,7 @@ export function Tools() {
         <button id="qClear" className="q-clear" type="button" hidden={!draft} aria-label="清空搜索" onClick={clear}>
           <IconClose />
         </button>
+        <kbd className="q-kbd" aria-hidden="true">/</kbd>
         <svg className="search-mark" viewBox="0 0 44 16" aria-hidden="true">
           <path d="M1 15 L9 6 L14 11 L21 3 L28 12 L34 7 L43 15 Z" />
         </svg>
@@ -90,9 +90,14 @@ export function Tools() {
 
       <div className="chipbar">
         <div className="chips" id="chipsDynasty" role="group" aria-label="按朝代筛选">
-          {DYNASTIES.map(function (d) {
+          {DYNASTIES.filter(function (d) {
+            /* 先唐这一格只在真收了先唐作品时才出现 */
+            return d.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
+          }).map(function (d) {
+            const n = d.val === "全部" ? undefined : (ERA_COUNT[d.val] || 0);
             return (
               <button key={d.val} type="button" data-val={d.val}
+                title={n === undefined ? "不限朝代" : d.label + " " + n + " 首"}
                 aria-pressed={dynasty === d.val}
                 onClick={() => toggleDynasty(d.val)}>
                 {d.label}

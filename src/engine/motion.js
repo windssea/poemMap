@@ -14,6 +14,7 @@ export const MOTION = (function () {
   var root = document.documentElement;
   var api = { on: false, hasGsap: false };
   var guard = 0;
+  var introTl = null;
 
   function g() { return gsap; }
 
@@ -22,10 +23,29 @@ export const MOTION = (function () {
     if (v && v.parentNode) v.parentNode.removeChild(v);
   }
 
+  /* 开场动过的这些元素，收尾时要把 GSAP 写上去的内联样式清掉。
+     ------------------------------------------------------------
+     不清的后果不是「留着也无所谓」，而是**内联样式压过样式表**：
+     #bottomBar 被写上 opacity:1 之后，body.panel-open #bottomBar{opacity:0}
+     再也盖不过它，索引面板滑出时底栏就赖着不走；
+     .search 上的 transform 同理，会把 :hover 的效果一并吃掉。 */
+  var INTRO_SEL = ".seal-big, .b-text h1, .b-text p, .couplet, .search, .chipbar, " +
+    "#bottomBar, #sideVerse, #compass, #zoomer, #paint";
+  function clearIntroProps() {
+    try { g().set(INTRO_SEL, { clearProps: "opacity,transform,filter" }); } catch (e) {}
+  }
+
+  /* ⚠️ 清内联样式必须挂在 clearPrep 里，不能只挂在时间线的 onComplete 上。
+     3.2 秒的兜底超时是直接调 clearPrep 的——如果那一刻时间线还没跑完
+     （弱机、或以后又往开场里加了东西），走 onComplete 的那条路根本不会执行，
+     元素就永久卡在动画中间的那个透明度上（比如底栏停在 0.05）。
+     所以这里先把时间线掐掉、再清样式，让「兜底」真的兜得住。 */
   function clearPrep() {
     root.classList.remove("motion-prep");
     root.classList.add("motion-done");
     if (guard) { clearTimeout(guard); guard = 0; }
+    if (introTl) { try { introTl.kill(); } catch (e) {} introTl = null; }
+    clearIntroProps();
     killVeil();
   }
 
@@ -50,9 +70,10 @@ export const MOTION = (function () {
     try {
       tl = g().timeline({
         defaults: { ease: "power3.out" },
-        onComplete: clearPrep,
-        onInterrupt: clearPrep,
+        onComplete: function () { introTl = null; clearPrep(); },
+        onInterrupt: function () { introTl = null; clearPrep(); },
       });
+      introTl = tl;
 
       // 题名：朱印落定 → 题名浮出 → 小联
       tl.fromTo(".seal-big", { opacity: 0, scale: 1.7, rotation: 12 },
@@ -84,7 +105,12 @@ export const MOTION = (function () {
 
       // 地标：自西向东依次点出
       if (ctx.markers && ctx.markers.length) {
-        tl.add(api.markersIn(ctx.markers, { each: 0.011, duration: 0.5 }), 0.7);
+        /* 步长按地标数反算，让这一段的总时长稳定在 **0.9 秒**左右。
+           写死 each: 0.011 时，收 80 个地标是 0.88 秒、收 141 个就变成 1.55 秒，
+           开场会跟着数据量一起变长（超过 3.2 秒的兜底超时还会被硬切）。
+           上限仍取 0.011：地标少的时候保持原来那点从容，多的时候自动加密。 */
+        const each = Math.max(0.0022, Math.min(0.011, 0.9 / ctx.markers.length));
+        tl.add(api.markersIn(ctx.markers, { each: each, duration: 0.5 }), 0.6);
       }
     } catch (err) {
       clearPrep();
@@ -167,12 +193,14 @@ export const MOTION = (function () {
     if (lines.length) {
       tl.fromTo(lines,
         { y: -16, opacity: 0, rotate: function (i) { return i % 2 ? 2 : -2; } },
-        { y: 0, opacity: 1, rotate: 0, duration: 0.5, ease: "back.out(1.5)", stagger: 0.05 }, 0);
+        { y: 0, opacity: 1, rotate: 0, duration: 0.5, ease: "back.out(1.5)", stagger: 0.05,
+          clearProps: "opacity,transform" }, 0);
     }
     if (blocks.length) {
       tl.fromTo(blocks,
         { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.44, ease: "power3.out", stagger: 0.04 }, lines.length ? 0.1 : 0);
+        { y: 0, opacity: 1, duration: 0.44, ease: "power3.out", stagger: 0.04,
+          clearProps: "opacity,transform" }, lines.length ? 0.1 : 0);
     }
   };
 

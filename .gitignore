@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 *.log
 .DS_Store
 
@@ -9,4 +9,9 @@ shots/
 # Wrangler 本地状态与密钥（wrangler.jsonc 本身要提交，见该文件注释）
 .wrangler/
 .dev.vars
+
+# 补编的「打捞产物」：由 tools/recover-from-dist.js 从旧构建里生成，
+# 内容已经全在 src/data/ 正册里，随时可重出，不必入库。
+# tools/_new/ 下其余 *.json 是补编的原始输入（apply-new-poems.js 读它们），要提交。
+tools/_new/recovered.json
 
