@@ -23,6 +23,7 @@ const state = {
   form: "全部",
   author: "",
   tag: "",
+  school: "",              // 作者群体（唐宋八大家…），见 data/schools.js
 
   /* 选中与面板 */
   openPoemId: null,        // 当前选中的诗（篇目高亮 / 抽屉正在读的）
@@ -84,9 +85,10 @@ export function toggleForm(v) {
 }
 export const setDynasty = (v) => setState({ dynasty: v });
 export const setForm = (v) => setState({ form: v });
-export const setAuthor = (v) => setState({ author: v, tag: "", panel: "list" });
+export const setAuthor = (v) => setState({ author: v, tag: "", school: "", panel: "list" });
 export const setTag = (v) => setState({ tag: v, author: "" });
-export const clearFacets = () => setState({ author: "", tag: "" });
+export const setSchool = (v) => setState({ school: v, author: "", tag: "" });
+export const clearFacets = () => setState({ author: "", tag: "", school: "" });
 
 /* ---------------- 动作：地标 / 卡片 / 浮层 ---------------- */
 /* 点某一首诗一律进右侧抽屉，不再经过中央卡片。

@@ -14,15 +14,17 @@
    ============================================================ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  useStore, closePalette, openDetail, openPoemList, setAuthor, setTag, clearFacets,
+  useStore, closePalette, openDetail, openPoemList, setAuthor, clearFacets,
   setDynasty, setForm,
 } from "../store.js";
 import { POEMS } from "../data/index.js";
 import { PLACES, PLACE_BY_ID } from "../data/places.js";
 import { poetIndex, themeIndex } from "../data/select.js";
+import { SCHOOLS, SCHOOL_NAMES, schoolCount } from "../data/schools.js";
 import { getEngine } from "../engine/mapEngine.js";
 import {
   pickRandom, resetView, toggleMotion, openPanelSafe, toggleSidebar, focusTag, about,
+  focusSchool,
 } from "../actions.js";
 import { openHelp } from "../store.js";
 import { IconSearch, IconChevron } from "./icons.jsx";
@@ -93,9 +95,20 @@ const ACTIONS = [
   { kind: "act", id: "f-ci", label: "只看词", kw: "词 体裁", run: () => setForm("词") },
   { kind: "act", id: "motion", label: "开关动效", run: toggleMotion },
   { kind: "act", id: "help", label: "快捷键速查", run: openHelp },
-  { kind: "act", id: "clear", label: "清除作者与主题筛选", run: clearFacets },
+  { kind: "act", id: "clear", label: "清除作者 / 主题 / 群体筛选", run: clearFacets },
   { kind: "act", id: "about", label: "关于本图", run: about },
 ];
+
+/* 作者群体也做成动作：搜「八大家」「韩愈」都能直接筛出这一组 */
+SCHOOL_NAMES.forEach(function (name) {
+  ACTIONS.push({
+    kind: "act",
+    id: "school-" + name,
+    label: "只看" + name + "（" + (SCHOOLS[name] || []).join(" · ") + "）",
+    kw: name + " 八大家 " + (SCHOOLS[name] || []).join(" "),
+    run: function () { focusSchool(name); },
+  });
+});
 
 const KIND_LABEL = { poem: "诗", author: "人", tag: "题", place: "地", act: "做" };
 

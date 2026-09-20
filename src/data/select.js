@@ -7,6 +7,7 @@
 import { POEMS, POEM_TAGS } from "./index.js";
 import { PLACES } from "./places.js";
 import { inEra } from "./eras.js";
+import { schoolOf } from "./schools.js";
 
 /** 按筛选条件取诗（与旧版 filtered() 完全一致的匹配规则） */
 export function selectFiltered(s) {
@@ -15,6 +16,7 @@ export function selectFiltered(s) {
     if (!inEra(p.dynasty, s.dynasty)) return false;
     if (s.form !== "全部" && p.form !== s.form) return false;
     if (s.author && p.author !== s.author) return false;
+    if (s.school && schoolOf(p.author) !== s.school) return false;
     if (s.tag && (POEM_TAGS[p.id] || []).indexOf(s.tag) === -1) return false;
     if (q) {
       const hay = (

@@ -4,12 +4,8 @@
    唐 / 宋 / 先唐 三个数是**当前筛选下**的结果，与「N 首 / N 地」
    同源——所以筛到宋词时唐那一格会自然归零并收起，而不是杵在那里
    显示一个永远不变的数。
-
-   窄屏上多一枚「⌘」：那一档会把顶部的题名与筛选条整块收掉，
-   搜索与筛选改由命令面板承担，所以入口得搬到底栏来
-   （见 style.css 里 `@media (max-width: 820px)` 的说明）。
    ============================================================ */
-import { useStore, toggleSide, openPalette } from "../store.js";
+import { useStore, toggleSide } from "../store.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
 import { visiblePlaceIds } from "../data/select.js";
 import { ERAS, inEra } from "../data/eras.js";
@@ -56,12 +52,6 @@ export default function BottomBar() {
         aria-expanded={sideOpen} onClick={onToggleSide}>
         <IconList />
         <span>篇目</span>
-      </button>
-
-      {/* 窄屏专用：顶部收起来之后，搜索与筛选的唯一入口 */}
-      <button id="dockPalette" type="button" aria-label="搜索与筛选"
-        title="搜索诗词、诗人、地标、主题，或切换筛选" onClick={openPalette}>
-        <span className="cmd-glyph" aria-hidden="true">⌘</span>
       </button>
 
       {perEra.map(function (e) {

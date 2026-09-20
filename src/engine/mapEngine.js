@@ -562,10 +562,10 @@ export function createEngine(mapEl) {
        中国轮廓的宽高比约 1.38，在 16:9 屏上永远是「高度先卡住」，
        所以上下那几十像素直接换成画面大小——松一点，整张图就小一圈。 */
     map.fitBounds(CHINA_BOUNDS, {
-      /* 窄屏上顶部已经没有题名与筛选条了（见 style.css 的 @media 820），
-         所以上面只留一点点呼吸位；下面给统计 dock 与缩放钮让位。
+      /* 窄屏上顶部只剩一行「搜索框 + 两个圆钮」（约 45px + 12px 上边距），
+         所以上面留 68 就够；下面给统计 dock 与缩放钮让位。
          此时画面其实是**宽度**先卡住，这两组数字只影响居中，不影响大小。 */
-      paddingTopLeft: [padLeft, narrow() ? 56 : 100],
+      paddingTopLeft: [padLeft, narrow() ? 68 : 100],
       paddingBottomRight: [narrow() ? 18 : 92, narrow() ? 78 : 74],
       animate: false,
     });
@@ -625,7 +625,7 @@ export function createEngine(mapEl) {
   let lastActive = null;
   subscribe(function () {
     const s = getState();
-    const key = [s.q, s.dynasty, s.form, s.author, s.tag].join("\u0000");
+    const key = [s.q, s.dynasty, s.form, s.author, s.tag, s.school].join("\u0000");
     if (key !== lastFilterKey) {
       lastFilterKey = key;
       syncVisibility();

@@ -14,7 +14,8 @@ export function useFilteredPoems() {
   const form = useStore("form");
   const author = useStore("author");
   const tag = useStore("tag");
+  const school = useStore("school");
   return useMemo(function () {
-    return selectFiltered({ q: q, dynasty: dynasty, form: form, author: author, tag: tag });
-  }, [q, dynasty, form, author, tag]);
+    return selectFiltered({ q: q, dynasty: dynasty, form: form, author: author, tag: tag, school: school });
+  }, [q, dynasty, form, author, tag, school]);
 }

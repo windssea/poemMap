@@ -12,7 +12,7 @@ import { ATMOSPHERE } from "./engine/atmosphere.js";
 import { getEngine } from "./engine/mapEngine.js";
 import {
   getState, openDetail, openPoemList, locatePoem, closePanel, closeMenu,
-  dismissOverlays, setMotionOn, showToast, openPanel, toggleSide, setTag,
+  dismissOverlays, setMotionOn, showToast, openPanel, toggleSide, setTag, setSchool,
 } from "./store.js";
 
 /** 点地标：一处多诗先列出来，独此一首直接开抽屉 */
@@ -110,5 +110,12 @@ export function toggleSidebar() {
 export function focusTag(tag) {
   closeMenu();
   setTag(tag);
+  openPanel("list");
+}
+
+/** 按作者群体筛（唐宋八大家…），同样把面板开到篇目 */
+export function focusSchool(name) {
+  closeMenu();
+  setSchool(name);
   openPanel("list");
 }

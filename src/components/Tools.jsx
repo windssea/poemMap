@@ -8,9 +8,10 @@ import {
 } from "../store.js";
 import { selectFiltered } from "../data/select.js";
 import { getState, showToast } from "../store.js";
-import { resetView, toggleMotion, about } from "../actions.js";
-import { AUTHOR_COUNT, ERA_COUNT } from "../data/index.js";
+import { resetView, toggleMotion, about, focusSchool } from "../actions.js";
+import { AUTHOR_COUNT, ERA_COUNT, POEMS } from "../data/index.js";
 import { ERAS } from "../data/eras.js";
+import { schoolCount } from "../data/schools.js";
 import { IconClose, IconMenu, IconSearch } from "./icons.jsx";
 
 /* 朝代筛选按「时代组」给：先唐一个按钮管住先秦/汉/魏晋/南北朝，
@@ -164,6 +165,9 @@ export function MenuPop() {
         诗人索引 <i>{AUTHOR_COUNT} 位</i>
       </button>
       <button type="button" onClick={act(() => openPanel("theme"))}>主题索引</button>
+      <button type="button" onClick={act(() => focusSchool("唐宋八大家"))}>
+        唐宋八大家 <i>{schoolCount(POEMS, "唐宋八大家")} 首</i>
+      </button>
       <button type="button" onClick={act(toggleMotion)}>
         动效 <b id="motionState">{motionOn ? "开" : "关"}</b>
       </button>

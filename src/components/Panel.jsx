@@ -35,6 +35,7 @@ export default function Panel() {
   const form = useStore("form");
   const author = useStore("author");
   const tag = useStore("tag");
+  const school = useStore("school");
   const openPoemId = useStore("openPoemId");
   const list = useFilteredPoems();
   const on = !!mode;
@@ -55,7 +56,7 @@ export default function Panel() {
         )}
         {mode === "list" && (
           <ListBody
-            dynasty={dynasty} form={form} author={author} tag={tag}
+            dynasty={dynasty} form={form} author={author} tag={tag} school={school}
             list={list} openPoemId={openPoemId}
           />
         )}
@@ -108,7 +109,7 @@ function ThemeBody({ tag, list, openPoemId }) {
   );
 }
 
-function ListBody({ dynasty, form, author, tag, list, openPoemId }) {
+function ListBody({ dynasty, form, author, tag, school, list, openPoemId }) {
   return (
     <>
       <div className="filters">
@@ -117,9 +118,11 @@ function ListBody({ dynasty, form, author, tag, list, openPoemId }) {
         <Chips values={FORMS} cur={form} onPick={toggleForm} />
       </div>
 
-      {(author || tag) && (
+      {(author || tag || school) && (
         <p className="panel-note">
           筛选：
+          {school || ""}
+          {school && (author || tag) ? " · " : ""}
           {author || ""}
           {author && tag ? " · " : ""}
           {tag || ""}

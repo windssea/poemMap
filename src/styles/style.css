@@ -1197,22 +1197,6 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
 .bs b, .bs-counts b { animation: bsTick .34s cubic-bezier(.22, 1, .28, 1); }
 html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 
-/* 窄屏专用：顶部收起来后，搜索与筛选只剩这一枚入口 */
-#dockPalette {
-  display: none;
-  flex: none;
-  width: 32px; height: 32px;
-  place-items: center;
-  background: rgba(255, 253, 247, .85);
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
-  transition: color .2s ease, border-color .2s ease, background .2s ease;
-}
-#dockPalette:hover, #dockPalette:active { border-color: rgba(168, 50, 42, .42); background: #fff; }
-#dockPalette .cmd-glyph { font-size: 15px; }
-#dockPalette:hover .cmd-glyph { color: var(--seal); }
-
 /* 窄屏专用：篇目栏几乎盖满屏时，唯一可靠的关闭入口 */
 #sideClose {
   display: none;
@@ -2294,14 +2278,40 @@ input:focus-visible {
 @media (max-width: 820px) {
   :root { --side-w: min(316px, 86vw); }
 
-  /* ══ 窄屏把顶部整块收掉 ══
-     390×844 上，题名（33px）+ 搜索框与筛选条（87px）吃掉 145px，
-     差不多是六分之一屏；而手机上真正要看的是地图。
-     于是：题名是纯装饰，去掉；搜索与筛选搬进命令面板，
-     入口挪到底栏那枚 ⌘（见 #dockPalette）。 */
-  #brand, #tools { display: none; }
+  /* ══ 窄屏顶部：只留搜索框，筛选 chips 收掉 ══
+     390×844 上，题名（33px）+ 搜索框与两行筛选条（87px）要吃掉 145px。
+     题名是纯装饰，去掉；筛选 chips 收进命令面板（面板里有一份同样的开关）。
+     但**搜索框留着**——它是最高频的入口，藏起来等于把「找诗」这件事
+     推到一个还得先想起快捷方式的角落。
+     两个圆钮（⌘ 命令面板 / ≡ 更多）与搜索框并成一行，所以顶部只占 45px。 */
+  #brand { display: none; }
 
-  /* 顶部没有东西了，地图把这一整块吃回来 */
+  #tools {
+    left: 14px; right: 14px; top: 12px;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #tools .search { flex: 1; min-width: 0; }
+  .chipbar {
+    flex: none;
+    margin-top: 0;
+    width: auto;
+    padding: 4px;
+    gap: 5px;
+    flex-wrap: nowrap;
+    border-radius: 999px;
+  }
+  /* 筛选条＝那两组 chips 与分隔线；窄屏只去掉它们，圆钮留着 */
+  .chipbar .chips,
+  .chipbar .chip-sep { display: none; }
+  .chip-fill { display: none; }
+  .round-btn { margin-left: 0; }
+  .q-kbd { display: none; }          /* 手机没有物理键盘，别占位 */
+
   .side-foot { display: none; }      /* 手指没有 ↑↓，键位提示是噪声 */
 
   #sidebar {
@@ -2315,15 +2325,6 @@ input:focus-visible {
   body.side-open #sidebar { transform: none; }
   #sideToggle { display: inline-flex; }
   #sideClose { display: grid; }
-  #dockPalette { display: grid; }
-
-  .chipbar { justify-content: flex-start; gap: 5px; padding: 5px 6px; border-radius: 14px; }
-  .chips { gap: 2px; }
-  .chips button { padding: 5px 7px; font-size: 11.5px; letter-spacing: .02em; }
-  .chip-fill { display: none; }
-  .round-btn { margin-left: 0; }
-  #paletteBtn { margin-left: auto; }
-  .q-kbd { display: none; }
 
   #bottomBar {
     left: 14px; right: 70px; bottom: 14px;
