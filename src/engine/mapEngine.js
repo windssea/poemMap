@@ -356,12 +356,16 @@ export function createEngine(mapEl) {
      ============================================================ */
   function dotHTML(node, active) {
     const many = node.poems.length > 1;
-    /* 不再挂原生 title：悬停交给 #placeHover 那张纸卡（又慢又丑的气泡
-       只能显示一行纯文本，读不出「这一处有哪几首」）。 */
-    return '<span class="dot-wrap' + (active ? " on" : "") + '">' +
+    /* 地标要能被键盘够到（C09）：divIcon 默认是一堆 div，Tab 走不到、
+       读屏也读不出来。给它 role=button + aria-label，并用**游走 tabindex**
+       （见 syncRove）让整组地标只占一个 Tab 位。
+       不再挂原生 title：悬停交给 #placeHover 那张纸卡。 */
+    const label = esc(node.region + "（" + node.name + "），" + node.poems.length + " 首诗词");
+    return '<span class="dot-wrap' + (active ? " on" : "") + '" role="button" tabindex="-1"' +
+        ' data-place="' + esc(node.id) + '" aria-label="' + label + '">' +
       (active ? '<span class="dot-glow"></span><span class="dot-ring"></span>' : "") +
-      '<span class="dot' + (many ? " many" : "") + '"></span>' +
-      '<span class="dot-name">' + esc(node.name) +
+      '<span class="dot' + (many ? " many" : "") + '" aria-hidden="true"></span>' +
+      '<span class="dot-name" aria-hidden="true">' + esc(node.name) +
         (many ? '<i class="dot-count">' + node.poems.length + "</i>" : "") +
       "</span>" +
     "</span>";
@@ -380,13 +384,7 @@ export function createEngine(mapEl) {
     n.marker = L.marker([n.lat, n.lng], { keyboard: false, riseOnHover: true, icon: nodeIcon(n, false) });
     n.marker.on("click", function (e) {
       L.DomEvent.stopPropagation(e);
-      /* 点下去就换成浮层/抽屉，悬停卡先收掉，别两张卡叠着 */
-      clearTimeout(hoverTimer);
-      hoverSeq++;
-      setHoverPlace(null);
-      /* 一处多诗 → 先进浮层挑一首；独此一首 → 直接开抽屉 */
-      if (n.poems.length > 1) openPoemList(n.id);
-      else openDetail(n.poems[0].id, n.id);
+      openNode(n);
     });
     n.marker.on("mouseover", function () { wantHover(n.id); });
     n.marker.on("mouseout", function () { wantHover(null); });
@@ -410,6 +408,93 @@ export function createEngine(mapEl) {
     clearTimeout(hoverTimer);
     hoverSeq++;
     setHoverPlace(null);
+  });
+
+  /* ============================================================
+     地标键盘可达（C09）
+     ------------------------------------------------------------
+     155 个地标如果各给一个 tabindex="0"，Tab 就成了一场噩梦——
+     要按 155 次才能走出地图。所以用**游走 tabindex（roving tabindex）**：
+     整组地标只占**一个** Tab 位，进去之后用方向键在地标之间走、
+     回车打开。这是 ARIA 复合控件组（列表、工具栏、树）的通行做法。
+
+     顺序按屏幕 x 排（西 → 东），与看图的方向一致；同列再按 y。
+     只把当前在视口内的算进来，否则按方向键会「跳到屏幕外」。
+     ============================================================ */
+  let roveEl = null;
+
+  function markerNodes() {
+    const size = map.getSize();
+    const out = [];
+    PLACES.forEach(function (n) {
+      if (!map.hasLayer(n.marker)) return;
+      const host = n.marker.getElement();
+      const dot = host && host.querySelector(".dot-wrap");
+      if (!dot) return;
+      const pt = map.latLngToContainerPoint([n.lat, n.lng]);
+      if (pt.x < -40 || pt.y < -40 || pt.x > size.x + 40 || pt.y > size.y + 40) return;
+      out.push({ n: n, dot: dot, x: pt.x, y: pt.y });
+    });
+    out.sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+    return out;
+  }
+
+  /** 让整组地标重新只留一个 Tab 位；prefer 给索引就挪到那一格 */
+  function syncRove(prefer) {
+    const list = markerNodes();
+    list.forEach(function (o) { o.dot.tabIndex = -1; });
+    if (!list.length) { roveEl = null; return list; }
+    let idx = list.findIndex(function (o) { return o.dot === roveEl; });
+    if (idx === -1) idx = 0;
+    if (typeof prefer === "number") idx = Math.max(0, Math.min(list.length - 1, prefer));
+    roveEl = list[idx].dot;
+    roveEl.tabIndex = 0;
+    return list;
+  }
+
+  function moveRove(delta) {
+    const list = markerNodes();
+    if (!list.length) return;
+    let idx = list.findIndex(function (o) { return o.dot === roveEl; });
+    idx = idx === -1 ? 0 : Math.max(0, Math.min(list.length - 1, idx + delta));
+    list.forEach(function (o, i) { o.dot.tabIndex = i === idx ? 0 : -1; });
+    roveEl = list[idx].dot;
+    roveEl.focus({ preventScroll: true });
+    /* 焦点走到哪个地标，就把它点亮并浮出那张纸卡——与鼠标悬停同一套反馈，
+       否则键盘用户不知道自己「现在在哪一处」。 */
+    setHoverPlace(list[idx].n.id);
+  }
+
+  function openNode(n) {
+    clearTimeout(hoverTimer);
+    hoverSeq++;
+    setHoverPlace(null);
+    if (n.poems.length > 1) openPoemList(n.id);
+    else openDetail(n.poems[0].id, n.id);
+  }
+
+  function nodeOfDot(dot) {
+    const id = dot && dot.getAttribute("data-place");
+    return id ? PLACE_BY_ID[id] : null;
+  }
+
+  /* 键盘事件挂在 Leaflet 容器上：地标是它内部的 div，事件会冒泡上来 */
+  map.getContainer().addEventListener("keydown", function (e) {
+    const t = e.target;
+    const dot = t && t.closest ? t.closest(".dot-wrap") : null;
+    if (!dot) return;
+    const k = e.key;
+    if (k === "Enter" || k === " " || k === "Spacebar") {
+      e.preventDefault();
+      const n = nodeOfDot(dot);
+      if (n) openNode(n);
+      return;
+    }
+    if (k === "ArrowRight" || k === "ArrowDown") { e.preventDefault(); moveRove(1); return; }
+    if (k === "ArrowLeft" || k === "ArrowUp") { e.preventDefault(); moveRove(-1); return; }
+    if (k === "Home") { e.preventDefault(); syncRove(0); if (roveEl) roveEl.focus(); return; }
+    if (k === "End") { e.preventDefault(); const l = syncRove(); if (roveEl) { roveEl.tabIndex = 0; l.forEach(function (o, i) { o.dot.tabIndex = i === l.length - 1 ? 0 : -1; }); roveEl = l[l.length - 1].dot; roveEl.focus(); } return; }
+    if (k === "Escape") { setHoverPlace(null); dot.blur(); }
   });
 
   /* ============================================================
@@ -611,6 +696,9 @@ export function createEngine(mapEl) {
     }
 
     firstSync = false;
+    /* 可见地标变了，游走 tabindex 也要重新落位（否则那个 Tab 位
+       可能落在一个刚被筛掉、已经从地图上移除的珠子上） */
+    syncRove();
     queueLayout();
     return list;
   }
@@ -649,6 +737,8 @@ export function createEngine(mapEl) {
   }
   map.on("zoomend moveend", function () {
     syncZoomClasses();
+    /* 平移缩放会改变「哪些地标在视口内」，游走位要跟着重算 */
+    syncRove();
     queueLayout();
     const s = getState();
     if (s.poemListPlaceId) placePoemList(PLACE_BY_ID[s.poemListPlaceId]);

@@ -1,0 +1,487 @@
+{
+ "ran_at": "2026-09-21T02:19:47.311Z",
+ "model": "jev-latest",
+ "usage": {
+  "input_tokens": 49512,
+  "output_tokens": 5205
+ },
+ "ms": 3402,
+ "rows": [
+  {
+   "id": "C01",
+   "area": "技术债",
+   "observation": "中央诗词卡组件 #card 已停用（源码里 on 恒为 false），但组件文件与约 250 行 CSS 仍留在打包产物里",
+   "evidence": "src/components/Card.jsx 第 32 行 `const on = false;`；style.css 中 #card 相关规则仍在",
+   "my_cost": 2,
+   "jev": {
+    "kind": "技术债",
+    "kind_confidence": 0.97,
+    "impact": 0.02,
+    "impact_confidence": 0.98,
+    "worth": 0.36,
+    "route": "直接修",
+    "route_confidence": 0.97
+   },
+   "priority": 0.18359999999999999
+  },
+  {
+   "id": "C02",
+   "area": "技术债",
+   "observation": "src/engine/eave.js 未被任何模块 import，是上一版设计的遗留文件",
+   "evidence": "全仓 grep 'eave' 只命中该文件自身与 README 的说明",
+   "my_cost": 1,
+   "jev": {
+    "kind": "技术债",
+    "kind_confidence": 1,
+    "impact": 0.01,
+    "impact_confidence": 0.99,
+    "worth": 0.38,
+    "route": "直接修",
+    "route_confidence": 0.95
+   },
+   "priority": 0.38380000000000003
+  },
+  {
+   "id": "C03",
+   "area": "技术债",
+   "observation": "仓库根目录存在一个名为 `-` 的残留文件（2646 字节，内容是一串诗名清单），非项目文件",
+   "evidence": "git status 长期显示为未跟踪；内容为上一次会话重定向误产生的文本",
+   "my_cost": 1,
+   "jev": {
+    "kind": "技术债",
+    "kind_confidence": 1,
+    "impact": 0.01,
+    "impact_confidence": 0.99,
+    "worth": 0.41,
+    "route": "直接修",
+    "route_confidence": 0.93
+   },
+   "priority": 0.41409999999999997
+  },
+  {
+   "id": "C04",
+   "area": "技术债",
+   "observation": "data/ js/ vendor/ 三个目录是 React 化之前的旧实现，已废弃不再被引用，但仍占据仓库约 1.5 MB",
+   "evidence": "README 第十节明确写「已废弃，保留只为对照与回滚」；index.html 不引用",
+   "my_cost": 2,
+   "jev": {
+    "kind": "技术债",
+    "kind_confidence": 0.99,
+    "impact": 0.19,
+    "impact_confidence": 0.84,
+    "worth": 0.48,
+    "route": "直接修",
+    "route_confidence": 0.95
+   },
+   "priority": 0.28559999999999997
+  },
+  {
+   "id": "C05",
+   "area": "性能",
+   "observation": "主包 gzip 后 452 KB，其中约 200 KB 是 325 段背景故事与全部诗文；这些文本首屏只需要其中 1 首，其余要等到用户点开才用得上",
+   "evidence": "实测 dist/bundle：index 1287 KB → gzip 452 KB；数据文件 poems.tang/song/pre 合计 597 KB 源码",
+   "my_cost": 4,
+   "jev": {
+    "kind": "性能问题",
+    "kind_confidence": 1,
+    "impact": 1.38,
+    "impact_confidence": 0.6,
+    "worth": 0.64,
+    "route": "先设计再改",
+    "route_confidence": 0.35
+   },
+   "priority": 0.38079999999999997
+  },
+  {
+   "id": "C06",
+   "area": "性能",
+   "observation": "地图平移时，155 个地标与地名签的透明度/位置在每个节流帧里被逐个写入 DOM",
+   "evidence": "mapEngine.js 的 layoutLabels() 对每个可见地标写 label.style.opacity 与 el.style.opacity，由 move 事件经 frameTick%2 节流触发",
+   "my_cost": 3,
+   "jev": {
+    "kind": "性能问题",
+    "kind_confidence": 1,
+    "impact": 1.53,
+    "impact_confidence": 0.53,
+    "worth": 0.64,
+    "route": "直接修",
+    "route_confidence": 0.56
+   },
+   "priority": 0.5397333333333334
+  },
+  {
+   "id": "C07",
+   "area": "性能",
+   "observation": "Three.js 云气层常驻以 30fps 重绘整屏，即使用户只是静止读诗、没有任何交互",
+   "evidence": "atmosphere.js 的 rAF 时长闸门限 30fps；实测空转帧率 143fps、云气是唯一持续动的层",
+   "my_cost": 2,
+   "jev": {
+    "kind": "性能问题",
+    "kind_confidence": 1,
+    "impact": 1.82,
+    "impact_confidence": 0.51,
+    "worth": 0.73,
+    "route": "直接修",
+    "route_confidence": 0.47
+   },
+   "priority": 1.0293
+  },
+  {
+   "id": "C08",
+   "area": "性能",
+   "observation": "诗人索引与主题索引在每次组件渲染时都重新遍历 325 首统计一遍（poetIndex / themeIndex 无缓存）",
+   "evidence": "src/data/select.js 的 poetIndex/themeIndex 每次调用全量遍历；Panel.jsx 在渲染时直接调用",
+   "my_cost": 1,
+   "jev": {
+    "kind": "性能问题",
+    "kind_confidence": 1,
+    "impact": 0.86,
+    "impact_confidence": 0.72,
+    "worth": 0.53,
+    "route": "直接修",
+    "route_confidence": 0.99
+   },
+   "priority": 0.9858
+  },
+  {
+   "id": "C09",
+   "area": "无障碍",
+   "observation": "地图上的 155 个诗词地标是 Leaflet divIcon（div 元素），不可 Tab 聚焦、屏幕阅读器也读不到，纯键盘用户无法通过地图选诗",
+   "evidence": "mapEngine.js 创建 marker 时 `keyboard: false`；icon 用 L.divIcon 渲染成 span",
+   "my_cost": 3,
+   "jev": {
+    "kind": "无障碍问题",
+    "kind_confidence": 1,
+    "impact": 3.08,
+    "impact_confidence": 0.78,
+    "worth": 0.73,
+    "route": "先设计再改",
+    "route_confidence": 0.64
+   },
+   "priority": 0.9928
+  },
+  {
+   "id": "C10",
+   "area": "无障碍",
+   "observation": "抽屉打开后键盘焦点没有移入抽屉，按 Tab 会继续走到底下地图与顶栏的控件上",
+   "evidence": "Detail.jsx 打开时只做 MOTION.cardIn 与 scrollTop 归零，没有 focus 管理",
+   "my_cost": 2,
+   "jev": {
+    "kind": "无障碍问题",
+    "kind_confidence": 0.99,
+    "impact": 2.34,
+    "impact_confidence": 0.57,
+    "worth": 0.82,
+    "route": "直接修",
+    "route_confidence": 0.98
+   },
+   "priority": 1.3694
+  },
+  {
+   "id": "C11",
+   "area": "无障碍",
+   "observation": "诗人/主题索引面板与命令面板打开时，背景内容没有被标记为 inert，屏幕阅读器仍可读到背后的地图与按钮",
+   "evidence": "Panel.jsx / Palette.jsx 只设 aria-hidden 于自身关闭态，未处理背景",
+   "my_cost": 2,
+   "jev": {
+    "kind": "无障碍问题",
+    "kind_confidence": 1,
+    "impact": 2.26,
+    "impact_confidence": 0.58,
+    "worth": 0.77,
+    "route": "直接修",
+    "route_confidence": 0.97
+   },
+   "priority": 1.2550999999999999
+  },
+  {
+   "id": "C12",
+   "area": "无障碍",
+   "observation": "次级文字色 --ink-4 (#b6a892) 用在米白纸底 (#f2e9d7) 上，对比度约 2.3:1，低于 WCAG AA 对正文要求的 4.5:1",
+   "evidence": "style.css 令牌定义；多处小字（落款元信息、键位提示、篇目行地点）使用该色",
+   "my_cost": 2,
+   "jev": {
+    "kind": "无障碍问题",
+    "kind_confidence": 1,
+    "impact": 1.89,
+    "impact_confidence": 0.58,
+    "worth": 0.67,
+    "route": "直接修",
+    "route_confidence": 0.91
+   },
+   "priority": 0.96815
+  },
+  {
+   "id": "C13",
+   "area": "无障碍",
+   "observation": "抽屉右上角的关闭按钮点击区域为 30×30 像素，小于移动端触控目标 44×44 像素的通行建议",
+   "evidence": "style.css .panel-close { width: 30px; height: 30px; }",
+   "my_cost": 2,
+   "jev": {
+    "kind": "无障碍问题",
+    "kind_confidence": 0.94,
+    "impact": 1.61,
+    "impact_confidence": 0.62,
+    "worth": 0.63,
+    "route": "直接修",
+    "route_confidence": 1
+   },
+   "priority": 0.8221500000000002
+  },
+  {
+   "id": "C14",
+   "area": "交互",
+   "observation": "诗人索引面板列出 114 位诗人，没有任何搜索或筛选，找一个不常见的作者要一直滚",
+   "evidence": "实测截图 shots/a-poet.png：面板只有标题、计数与长列表；Panel.jsx 的 PoetBody 无输入框",
+   "my_cost": 3,
+   "jev": {
+    "kind": "功能缺失",
+    "kind_confidence": 0.89,
+    "impact": 1.87,
+    "impact_confidence": 0.72,
+    "worth": 0.61,
+    "route": "直接修",
+    "route_confidence": 0.9
+   },
+   "priority": 0.5835666666666667
+  },
+  {
+   "id": "C15",
+   "area": "交互",
+   "observation": "主题索引面板列出 64 个主题标签，没有搜索、没有分组，标签按首数降序平铺",
+   "evidence": "Panel.jsx 的 ThemeBody 直接 map 出 chips；themeIndex() 返回 64 项",
+   "my_cost": 3,
+   "jev": {
+    "kind": "功能缺失",
+    "kind_confidence": 0.86,
+    "impact": 1.82,
+    "impact_confidence": 0.78,
+    "worth": 0.49,
+    "route": "直接修",
+    "route_confidence": 0.66
+   },
+   "priority": 0.46060000000000006
+  },
+  {
+   "id": "C16",
+   "area": "交互",
+   "observation": "一地多诗时弹出的磨砂浮层最多列 14 首，超出部分只能内部滚动，浮层内没有搜索或按朝代筛选",
+   "evidence": "README 与 PoemList.jsx：node.poems 全量渲染，CSS 限高；黄州 14 首、杭州 16 首",
+   "my_cost": 3,
+   "jev": {
+    "kind": "功能缺失",
+    "kind_confidence": 0.71,
+    "impact": 1.63,
+    "impact_confidence": 0.66,
+    "worth": 0.52,
+    "route": "直接修",
+    "route_confidence": 0.45
+   },
+   "priority": 0.45586666666666664
+  },
+  {
+   "id": "C17",
+   "area": "交互",
+   "observation": "顶部搜索框只做 180ms 去抖后过滤，输入过程中没有任何联想建议或「正在查找」的反馈",
+   "evidence": "Tools.jsx 的 onInput 用 setTimeout 180ms 推给 store；无建议下拉",
+   "my_cost": 2,
+   "jev": {
+    "kind": "可用性缺陷",
+    "kind_confidence": 0.65,
+    "impact": 1.4,
+    "impact_confidence": 0.66,
+    "worth": 0.38,
+    "route": "直接修",
+    "route_confidence": 0.34
+   },
+   "priority": 0.45599999999999996
+  },
+  {
+   "id": "C18",
+   "area": "交互",
+   "observation": "左侧篇目栏的 ↑↓ 键只在篇目栏展开时生效；收起状态下按 ↑↓ 完全没有反应",
+   "evidence": "Sidebar.jsx 的 keydown 监听以 if (!sideOpen) return 开头",
+   "my_cost": 2,
+   "jev": {
+    "kind": "可用性缺陷",
+    "kind_confidence": 0.65,
+    "impact": 1.61,
+    "impact_confidence": 0.61,
+    "worth": 0.6,
+    "route": "直接修",
+    "route_confidence": 0.92
+   },
+   "priority": 0.783
+  },
+  {
+   "id": "C19",
+   "area": "交互",
+   "observation": "在多地浮层里选了一首诗之后浮层立即消失，想在同处换一首读必须重新点回地标",
+   "evidence": "actions.js 的 choosePoem 直接 openDetail，store.openDetail 会把 poemListPlaceId 置空",
+   "my_cost": 3,
+   "jev": {
+    "kind": "可用性缺陷",
+    "kind_confidence": 0.92,
+    "impact": 1.78,
+    "impact_confidence": 0.76,
+    "worth": 0.66,
+    "route": "直接修",
+    "route_confidence": 0.58
+   },
+   "priority": 0.6116
+  },
+  {
+   "id": "C20",
+   "area": "交互",
+   "observation": "长诗（如 88 句的琵琶行）在抽屉里只能横向拖动，没有跳到某一段或按句检索的手段，只有一条进度条",
+   "evidence": "实测 #/p/pipa-xing：scrollWidth 3859 / clientWidth 1171，仅左缘渐隐与进度条",
+   "my_cost": 4,
+   "jev": {
+    "kind": "功能缺失",
+    "kind_confidence": 0.79,
+    "impact": 2.18,
+    "impact_confidence": 0.69,
+    "worth": 0.58,
+    "route": "先设计再改",
+    "route_confidence": 0.38
+   },
+   "priority": 0.4611
+  },
+  {
+   "id": "C21",
+   "area": "交互",
+   "observation": "抽屉底部读完落款之后没有「回到地图」或「收起」的动作，只能去右上角找关闭按钮或按 Esc",
+   "evidence": "Detail.jsx 的 .d-colophon 之后即结束，无收尾动作",
+   "my_cost": 2,
+   "jev": {
+    "kind": "可用性缺陷",
+    "kind_confidence": 0.42,
+    "impact": 1.54,
+    "impact_confidence": 0.59,
+    "worth": 0.58,
+    "route": "直接修",
+    "route_confidence": 0.93
+   },
+   "priority": 0.7365999999999999
+  },
+  {
+   "id": "C22",
+   "area": "交互",
+   "observation": "抽屉里「此处另有 N 首」是与标签、翻页钮同级的虚线药丸，视觉权重接近，容易被当成装饰而忽略",
+   "evidence": "style.css .others-more 用 dashed 边框与浅色底；截图里与上方标签挤在一起",
+   "my_cost": 2,
+   "jev": {
+    "kind": "可用性缺陷",
+    "kind_confidence": 1,
+    "impact": 1.74,
+    "impact_confidence": 0.76,
+    "worth": 0.57,
+    "route": "直接修",
+    "route_confidence": 0.96
+   },
+   "priority": 0.7809
+  },
+  {
+   "id": "C23",
+   "area": "视觉",
+   "observation": "窄屏隐藏了题名与副题之后，页面上完全没有站点标识，把页面加到主屏或分享出去时认不出是什么",
+   "evidence": "style.css @media 820 里 #brand { display: none }；实测窄屏截图左上角为空",
+   "my_cost": 2,
+   "jev": {
+    "kind": "内容问题",
+    "kind_confidence": 0.5,
+    "impact": 1.25,
+    "impact_confidence": 0.76,
+    "worth": 0.5,
+    "route": "直接修",
+    "route_confidence": 0.78
+   },
+   "priority": 0.5625
+  },
+  {
+   "id": "C24",
+   "area": "视觉",
+   "observation": "窄屏装裱框内缩到 7px，而搜索框距顶 12px，两者只差 5px，框线与控件视觉上贴得很紧",
+   "evidence": "style.css #mount { inset: 7px } 与 #tools { top: 12px }",
+   "my_cost": 1,
+   "jev": {
+    "kind": "审美偏好",
+    "kind_confidence": 0.89,
+    "impact": 0.99,
+    "impact_confidence": 0.9,
+    "worth": 0.28,
+    "route": "直接修",
+    "route_confidence": 0.94
+   },
+   "priority": 0.5572
+  },
+  {
+   "id": "C25",
+   "area": "视觉",
+   "observation": "装裱框四角的包角线是 1 像素宽，在部分屏幕上几乎看不见，四角看起来是断的",
+   "evidence": "style.css .mt-corner 用 border-*-width: 1px",
+   "my_cost": 1,
+   "jev": {
+    "kind": "审美偏好",
+    "kind_confidence": 0.98,
+    "impact": 0.48,
+    "impact_confidence": 0.6,
+    "worth": 0.29,
+    "route": "直接修",
+    "route_confidence": 0.96
+   },
+   "priority": 0.42919999999999997
+  },
+  {
+   "id": "C26",
+   "area": "内容",
+   "observation": "曾巩《城南》的写作地被标为福州，但相当一部分教辅与选本注为齐州（今济南），两说并存",
+   "evidence": "补编写手定为「熙宁十年曾巩知福州」；本轮联网核实时 docs 与百科在本环境均不可达",
+   "my_cost": 1,
+   "jev": {
+    "kind": "内容问题",
+    "kind_confidence": 1,
+    "impact": 1.22,
+    "impact_confidence": 0.74,
+    "worth": 0.41,
+    "route": "先问用户",
+    "route_confidence": 0.87
+   },
+   "priority": 0.9101999999999999
+  },
+  {
+   "id": "C27",
+   "area": "内容",
+   "observation": "index.html 只有 title 与 description，没有 Open Graph / 结构化数据，分享到社交平台时不显示卡片",
+   "evidence": "index.html 仅含 title、description、theme-color、内联 SVG favicon",
+   "my_cost": 1,
+   "jev": {
+    "kind": "内容问题",
+    "kind_confidence": 0.94,
+    "impact": 0.72,
+    "impact_confidence": 0.74,
+    "worth": 0.24,
+    "route": "直接修",
+    "route_confidence": 0.41
+   },
+   "priority": 0.4128
+  },
+  {
+   "id": "C28",
+   "area": "内容",
+   "observation": "应用完全离线可用，但没有 manifest 与 service worker，不能安装到主屏、也不能在断网后从缓存打开",
+   "evidence": "仓库无 manifest.json / sw.js；wrangler.jsonc 仅做静态托管",
+   "my_cost": 4,
+   "jev": {
+    "kind": "功能缺失",
+    "kind_confidence": 0.79,
+    "impact": 1.29,
+    "impact_confidence": 0.66,
+    "worth": 0.44,
+    "route": "直接修",
+    "route_confidence": 0.49
+   },
+   "priority": 0.2519
+  }
+ ]
+}

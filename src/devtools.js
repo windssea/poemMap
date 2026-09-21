@@ -13,7 +13,7 @@ import { THUMBS } from "./engine/thumbs.js";
 import { getState } from "./store.js";
 import { PLACES, PLACE_BY_ID } from "./data/places.js";
 import { POEMS, POEM_BY_ID } from "./data/index.js";
-import { selectFiltered } from "./data/select.js";
+import { selectFiltered, poetIndex, themeIndex } from "./data/select.js";
 
 export function exposeDiagnostics() {
   if (!import.meta.env.DEV) return;
@@ -28,4 +28,8 @@ export function exposeDiagnostics() {
   window.__poemById = POEM_BY_ID;
   window.__places = PLACES;
   window.__placeById = PLACE_BY_ID;
+  /* 索引的缓存是「惰性算一次」，探针要能验证它真的只算一次：
+     连续调两次，比对返回的是不是同一个数组引用。 */
+  window.__poetIndex = poetIndex;
+  window.__themeIndex = themeIndex;
 }

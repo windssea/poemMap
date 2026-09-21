@@ -17,9 +17,9 @@
   --paper-2:  #fdf8ec;   /* 卡面 */
   --paper-3:  #fffdf7;   /* 最亮的纸 */
   --ink:      #3a3026;
-  --ink-2:    #6d6152;
-  --ink-3:    #9c8f7b;
-  --ink-4:    #b6a892;
+  --ink-2:  #5f5548;
+  --ink-3:  #76674f;
+  --ink-gfx: #978365;
   --line:     #e0d2b8;
   --line-2:   #efe5d1;
   --gold:     #c3a667;
@@ -245,6 +245,18 @@ html.motion-off .p-crane { animation: none; }
   --dot: 12px;
   --dot-ring: rgba(178, 146, 88, .22);
 }
+/* 命中区补到 24×24（WCAG 2.5.8 AA 的下限）。
+   珠子本身只有 12px——鼠标还凑合，手指基本点不中。
+   用 ::after 撑出隐形命中区，**视觉一点没变**。
+   ⚠️ 代价：全国视野下苏杭一带的珠子只隔十几像素，24px 的命中圈会互相压住，
+   交叠处由最上面那颗接管。但「可能点错邻居」远好过「根本点不中」，
+   而且放大一档之后珠子自然分开。 */
+.dot-wrap::after {
+  content: "";
+  position: absolute;
+  inset: -6px;              /* 12 + 6×2 = 24，正好是 WCAG 2.5.8 的下限 */
+  border-radius: 50%;
+}
 /* 全国视野下江浙一带地标最密，珠子收到 9px 才不会糊成一片红；
    放大后再逐档回大，好点也好认。 */
 body.zoom-far  .dot-wrap { --dot: 9px; }
@@ -303,6 +315,32 @@ body.zoom-far .dot {
     0 2px 7px rgba(104, 60, 30, .44);
 }
 .dot-wrap:hover { z-index: 40; }
+/* 键盘焦点落在珠子上：给一圈**明显**的朱红环 + 放大。
+   与 :hover 的轻微放大刻意做出差别——悬停是「瞄一眼」，
+   焦点是「你现在在这里」，后者要一眼看得见。
+   （C09：整组地标用游走 tabindex，方向键在珠子间走，所以必须看得见走到哪了。） */
+.dot-wrap:focus { outline: none; }
+.dot-wrap:focus-visible { z-index: 45; }
+.dot-wrap:focus-visible .dot {
+  transform: scale(1.45);
+  box-shadow:
+    inset 0 0 0 .5px rgba(120, 30, 24, .5),
+    0 0 0 3px rgba(255, 252, 242, .98),
+    0 0 0 6px var(--seal),
+    0 3px 10px rgba(104, 60, 30, .5);
+}
+.dot-wrap:focus-visible .dot-name {
+  margin-top: calc(var(--dot) / 2 + 6px);
+  padding: 3px 10px;
+  font-size: 13px;
+  letter-spacing: .16em;
+  color: #fdf4e6;
+  background: linear-gradient(180deg, #b0362c, #92271e);
+  border: 1px solid rgba(255, 226, 196, .5);
+  border-radius: 3px;
+  box-shadow: 0 4px 12px rgba(120, 40, 30, .34), inset 0 0 0 1px rgba(255, 240, 220, .16);
+  text-shadow: none;
+}
 .dot-name {
   position: absolute;
   top: 100%;
@@ -478,7 +516,7 @@ body.show-prov .prov-label span { opacity: 1; }
   margin-top: 5px;
   font-size: 10.5px;
   letter-spacing: .3em;
-  color: var(--ink-4);
+  color: var(--ink-3);
 }
 .couplet {
   display: flex;
@@ -493,7 +531,10 @@ body.show-prov .prov-label span { opacity: 1; }
   font-family: var(--serif);
   font-size: 12.5px;
   letter-spacing: .3em;
-  color: #8b7a63;
+  /* 原来是 #8b7a63（实测 3.44:1，只够大字与图形，而这是 12.5px 的小字）。
+     它虽然挂在 aria-hidden 的装饰容器里，但**看得见的字就是要读的字**，
+     压到 AA 档 #756653（4.60:1）。 */
+  color: #756653;
 }
 .cp-seal {
   width: 11px; height: 11px;
@@ -555,7 +596,7 @@ body.show-prov .prov-label span { opacity: 1; }
   border: none;
   outline: none;
 }
-.search input::placeholder { color: var(--ink-4); letter-spacing: .06em; }
+.search input::placeholder { color: var(--ink-3); letter-spacing: .06em; }
 .search input::-webkit-search-cancel-button { display: none; }
 .search-mark { flex: none; width: 30px; height: 11px; fill: #d9cdb4; }
 /* 「/」快捷提示：输入框聚焦时收起来，不跟光标抢位置 */
@@ -566,7 +607,7 @@ body.show-prov .prov-label span { opacity: 1; }
   font-family: var(--sans);
   font-size: 10.5px;
   line-height: 1.5;
-  color: var(--ink-4);
+  color: var(--ink-3);
   background: rgba(195, 166, 103, .13);
   border: 1px solid rgba(195, 166, 103, .3);
   border-radius: 4px;
@@ -623,6 +664,7 @@ body.show-prov .prov-label span { opacity: 1; }
 .chip-sep { width: 1px; height: 15px; background: linear-gradient(180deg, transparent, var(--line) 22%, var(--line) 78%, transparent); }
 .chip-fill { flex: 1; }
 .round-btn {
+  position: relative;
   flex: none;
   width: 29px; height: 29px;
   display: grid;
@@ -632,6 +674,15 @@ body.show-prov .prov-label span { opacity: 1; }
   border-radius: 50%;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
   transition: background .2s ease, transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+/* 29px 的圆，命中区撑到 33×43。
+   横向只敢扩 2px：两个圆钮之间只有 5px 间距，各扩 2 就不会互相盖住
+   （扩 4 的话两块命中区会重叠 3px，点哪儿都说不准是哪一个）。 */
+.round-btn::after {
+  content: "";
+  position: absolute;
+  inset: -7px -2px;
+  border-radius: 999px;
 }
 .round-btn:hover {
   background: #fff;
@@ -823,7 +874,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   white-space: nowrap;
 }
 .it-p svg { flex: none; width: 10px; height: 10px; fill: var(--seal); opacity: .72; }
-.item .chev { flex: none; width: 13px; height: 13px; fill: none; stroke: var(--ink-4); stroke-width: 2; stroke-linecap: round; }
+.item .chev { flex: none; width: 13px; height: 13px; fill: none; stroke: var(--ink-gfx); stroke-width: 2; stroke-linecap: round; }
 .item:hover .chev { stroke: var(--ink-2); }
 
 .side-empty {
@@ -852,7 +903,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   padding: 8px 14px 10px;
   font-size: 10.5px;
   letter-spacing: .06em;
-  color: var(--ink-4);
+  color: var(--ink-3);
   border-top: 1px solid var(--line-2);
 }
 .side-foot kbd {
@@ -1197,9 +1248,12 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 50, 42,
 .bs b, .bs-counts b { animation: bsTick .34s cubic-bezier(.22, 1, .28, 1); }
 html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 
-/* 窄屏专用：篇目栏几乎盖满屏时，唯一可靠的关闭入口 */
+/* 窄屏专用：篇目栏几乎盖满屏时，唯一可靠的关闭入口。
+   视觉圆 24px，但用 ::after 撑出 44×44 的命中区——
+   ::after 是绝对定位，不参与布局，所以页签行的高度一点没变。 */
 #sideClose {
   display: none;
+  position: relative;
   flex: none;
   width: 24px; height: 24px;
   margin: 0 2px 6px 4px;
@@ -1208,6 +1262,12 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   color: var(--ink-3);
   background: rgba(120, 108, 86, .1);
   border: none;
+  border-radius: 50%;
+}
+#sideClose::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
   border-radius: 50%;
 }
 #sideClose:hover { color: var(--seal); background: rgba(168, 50, 42, .1); }
@@ -1230,7 +1290,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 14px;
   letter-spacing: .4em;
-  color: #8b7a63;
+  color: #756653;              /* 同 .cp-line：3.44:1 → 4.60:1 */
   text-shadow: 0 1px 0 rgba(255, 253, 246, .8), 0 0 10px rgba(250, 246, 235, .85);
 }
 .sv-seal {
@@ -1250,7 +1310,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 #compass {
   position: fixed;
   right: 24px;
-  bottom: 104px;
+  /* 缩放钮长高到 88px（两个 44px 的按钮），罗盘要跟着上移，否则会叠在一起 */
+  bottom: 124px;
   z-index: 610;
   width: 44px; height: 54px;
   display: flex;
@@ -1285,7 +1346,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   overflow: hidden;
 }
 #zoomer button {
-  width: 42px; height: 34px;
+  width: 42px; height: 44px;      /* 34 → 44：触控目标高度达标 */
   display: grid;
   place-items: center;
   background: none;
@@ -1316,21 +1377,47 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   transition: transform .42s cubic-bezier(.22, 1, .28, 1);
 }
 #detail.on { transform: none; }
+/* 关闭钮：**看得见的是 30px，点得着的是 44px**
+   ----------------------------------------------------------
+   原来按钮本身就是 30×30 —— 小于移动端触控目标 44×44 的通行建议，
+   手指按偏一点就点不着。直接把圆放大到 44 会挤掉抽屉标题的位置，
+   所以把「视觉圆」移到 ::before 上，按钮本体做成透明的 44×44 命中区，
+   两者用 grid 同一格叠在一起（grid-area: 1/1）。
+   视觉尺寸一点没变，命中区大了 2.15 倍。 */
 .panel-close {
   position: absolute;
-  top: 16px; right: 18px;
+  top: 9px; right: 11px;      /* 视觉圆心仍在原来的 (33,31) 附近 */
   z-index: 3;
-  width: 30px; height: 30px;
+  width: 44px; height: 44px;
   display: grid;
   place-items: center;
-  padding: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+}
+.panel-close::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 30px; height: 30px;
+  border-radius: 50%;
   background: rgba(242, 233, 215, .8);
   border: 1px solid var(--line-2);
-  border-radius: 50%;
   transition: background .2s ease, transform .2s ease;
 }
-.panel-close:hover { background: #fff; transform: rotate(90deg); }
-.panel-close svg { width: 100%; height: 100%; fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; }
+.panel-close:hover::before,
+.panel-close:focus-visible::before { background: #fff; transform: rotate(90deg); }
+.panel-close svg {
+  grid-area: 1 / 1;
+  position: relative;
+  width: 16px; height: 16px;
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+/* 键盘走到这里时给一圈明显的焦点环（焦点环画在命中区上，不是 30px 圆上） */
+.panel-close:focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
 
 .detail-body {
   flex: 1;
@@ -1456,7 +1543,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 11.5px;
   letter-spacing: .18em;
-  color: var(--ink-4);
+  color: var(--ink-3);
   white-space: nowrap;
 }
 
@@ -1499,7 +1586,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 12px;
   letter-spacing: .06em;
-  color: var(--ink-4);
+  color: var(--ink-3);
   white-space: nowrap;
 }
 .dn-pos i { font-style: normal; margin: 0 1px; opacity: .55; }
@@ -1649,7 +1736,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 .dc-meta {
   font-size: 11px;
   letter-spacing: .1em;
-  color: var(--ink-4);
+  color: var(--ink-3);
   text-align: center;
   line-height: 1.7;
 }
@@ -1788,7 +1875,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 }
 .ph-head .i-pin { flex: none; width: 11px; height: 11px; fill: var(--seal); align-self: center; }
 .ph-head b { font-family: var(--serif); font-size: 14px; font-weight: 600; letter-spacing: .06em; color: #3a3026; }
-.ph-n { margin-left: auto; font-size: 11px; color: var(--ink-4); white-space: nowrap; }
+.ph-n { margin-left: auto; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
 
 .ph-list { list-style: none; margin: 7px 0 0; padding: 0; }
 .ph-list li {
@@ -1806,7 +1893,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ph-m { flex: none; margin-left: auto; font-size: 10.5px; color: var(--ink-4); white-space: nowrap; }
+.ph-m { flex: none; margin-left: auto; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
 .ph-more { margin-top: 4px; font-size: 11px; color: var(--ink-3); }
 .ph-hint {
   margin-top: 7px;
@@ -1887,7 +1974,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border: none;
   outline: none;
 }
-.pal-input input::placeholder { color: var(--ink-4); }
+.pal-input input::placeholder { color: var(--ink-3); }
 
 .pal-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 6px 8px 10px; }
 
@@ -1898,7 +1985,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .22em;
-  color: var(--ink-4);
+  color: var(--ink-3);
 }
 
 .pal-item {
@@ -1916,7 +2003,11 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 .pal-item.cur { background: rgba(168, 50, 42, .085); box-shadow: inset 2px 0 0 var(--seal); }
 .pal-item.cur .pal-t { color: var(--seal-d); }
 
-/* 类型徽标：一个字，靠色相区分，不抢标题 */
+/* 类型徽标：一个字，靠色相区分，不抢标题。
+   ⚠️ 反白字（#fdf4e4）压在渐变上，**浅端**才是决定对比度的那一端：
+   原来 badge 地 的浅端 #c3a667 只有 2.14:1、题 #8d8f9c 只有 2.94:1，
+   11px 的字远不够 AA。下面每组都把浅端压到 ≥4.5:1，深端更暗自然达标。
+   （渲染探针量不到渐变底、会跳过这些元素，是这里靠令牌手算查出来的。） */
 .pal-badge {
   flex: none;
   width: 20px; height: 20px;
@@ -1926,13 +2017,13 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 11px;
   border-radius: 5px;
   color: #fdf4e4;
-  background: var(--ink-4);
+  background: var(--ink-3);
 }
-.pal-badge.b-poem { background: linear-gradient(160deg, #b8382e, #96271f); }
-.pal-badge.b-author { background: linear-gradient(160deg, #6f8f74, #55705c); }
-.pal-badge.b-place { background: linear-gradient(160deg, #c3a667, #9c7f3f); }
-.pal-badge.b-tag { background: linear-gradient(160deg, #8d8f9c, #6e707d); }
-.pal-badge.b-act { background: linear-gradient(160deg, #a08a6a, #7d6a4e); }
+.pal-badge.b-poem { background: linear-gradient(160deg, #b8382e, #96271f); }   /* 5.28:1 */
+.pal-badge.b-author { background: linear-gradient(160deg, #5c7760, #55705c); } /* 4.51:1 */
+.pal-badge.b-place { background: linear-gradient(160deg, #876d35, #6b5629); }  /* 4.51:1 */
+.pal-badge.b-tag { background: linear-gradient(160deg, #6d6f7e, #565863); }    /* 4.55:1 */
+.pal-badge.b-act { background: linear-gradient(160deg, #806d52, #63543f); }    /* 4.55:1 */
 
 .pal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .pal-t {
@@ -1956,7 +2047,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   flex: none;
   width: 13px; height: 13px;
   fill: none;
-  stroke: var(--ink-4);
+  stroke: var(--ink-gfx);
   stroke-width: 2;
   stroke-linecap: round;
   opacity: 0;
@@ -1968,7 +2059,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   padding: 1px 5px;
   font-family: var(--sans);
   font-size: 10px;
-  color: var(--ink-4);
+  color: var(--ink-3);
   background: rgba(195, 166, 103, .14);
   border: 1px solid rgba(195, 166, 103, .3);
   border-radius: 4px;
@@ -1990,7 +2081,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   padding: 9px 15px;
   font-size: 11px;
   letter-spacing: .06em;
-  color: var(--ink-4);
+  color: var(--ink-3);
   background: rgba(195, 166, 103, .07);
   border-top: 1px solid var(--line-2);
 }
@@ -2083,7 +2174,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   color: #3a3026;
 }
 .help-row dd span { font-size: 11.5px; line-height: 1.6; color: var(--ink-3); }
-.help-or { font-size: 10px; color: var(--ink-4); }
+.help-or { font-size: 10px; color: var(--ink-3); }
 .help-row kbd {
   min-width: 22px;
   padding: 2px 6px;
@@ -2103,7 +2194,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   text-align: center;
   font-size: 11px;
   letter-spacing: .08em;
-  color: var(--ink-4);
+  color: var(--ink-3);
 }
 
 /* ══════════ 菜单 · 提示 ══════════ */
@@ -2136,7 +2227,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 }
 .menu-pop button:hover { background: rgba(195, 166, 103, .15); color: var(--ink); }
 .menu-pop b { font-weight: 600; color: var(--seal); }
-.menu-pop i { font-size: 11.5px; color: var(--ink-4); }
+.menu-pop i { font-size: 11.5px; color: var(--ink-3); }
 
 .toast {
   position: fixed;
@@ -2304,7 +2395,7 @@ input:focus-visible {
   #tools { right: 16px; top: 12px; }
   #sidebar { left: 12px; top: 74px; bottom: 16px; }
   #zoomer { right: 16px; bottom: 16px; }
-  #compass { right: 16px; bottom: 100px; }
+  #compass { right: 16px; bottom: 120px; }
   #sideVerse { display: none; }
 }
 
@@ -2373,7 +2464,7 @@ input:focus-visible {
   #shuffleBtn span { display: none; }         /* 只留图标，title 里还有字 */
 
   #zoomer { right: 14px; bottom: 14px; }
-  #compass { right: 14px; bottom: 94px; }
+  #compass { right: 14px; bottom: 114px; }
 
   #card {
     left: 14px !important;
@@ -2404,7 +2495,7 @@ input:focus-visible {
   @media (max-width: 820px) {
     #bottomBar { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
     #zoomer { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
-    #compass { bottom: calc(94px + env(safe-area-inset-bottom, 0px)); }
+    #compass { bottom: calc(114px + env(safe-area-inset-bottom, 0px)); }
     #sidebar { padding-top: env(safe-area-inset-top, 0px); }
   }
 }

@@ -58,6 +58,8 @@ export default function App() {
   const detailPoemId = useStore("detailPoemId");
   const poemListPlaceId = useStore("poemListPlaceId");
   const panel = useStore("panel");
+  const paletteOpen = useStore("paletteOpen");
+  const helpOpen = useStore("helpOpen");
   const list = useFilteredPoems();
 
   /* ---------- 启动：地图 → 动效 → 云气 → 开场 ---------- */
@@ -217,26 +219,45 @@ export default function App() {
     return function () { document.removeEventListener("pointerdown", onDown); };
   }, [detailPoemId, poemListPlaceId, sideOpen]);
 
+  /* ---------- 真模态：命令面板与速查卡打开时，把背景设为 inert（C11） ----------
+     这两块在源码里已经写了 role="dialog" aria-modal="true" ——
+     但**只声明不执行等于说谎**：读屏照样能 Tab 进背后的地图与顶栏，
+     焦点陷阱也不存在。inert 让浏览器自己挡住背后的整个子树，
+     比手写 keydown 陷阱可靠（也不用担心漏掉某个可聚焦元素）。
+     侧栏（抽屉 / 索引面板）不算模态，不在此列——见 useFocusReturn 的说明。 */
+  const modalOpen = paletteOpen || helpOpen;
+
   return (
     <>
-      <MapCanvas mapRef={mapEl} />
-      <Paint />
-      <Mount />
-      <div id="atmosphere" ref={atmoEl} aria-hidden="true" />
+      {/* ⚠️ inert 要给**布尔**。React 19 把 inert 归入布尔属性，
+          传字符串 "" 会被当成假值、整个属性都不渲染（实测：面板开着，
+          stage.hasAttribute('inert') 仍是 false）。传 true 才写出 inert=""。 */}
+      <div id="stage" inert={modalOpen}>
+        <MapCanvas mapRef={mapEl} />
+        <Paint />
+        <Mount />
+        <div id="atmosphere" ref={atmoEl} aria-hidden="true" />
 
-      <Brand />
-      <Tools />
-      <Sidebar />
-      <PoemList />
-      <PlaceHover />
-      <Card />
-      <BottomBar />
-      <SideVerse />
-      <Compass />
-      <Zoomer />
-      <Detail />
-      <Panel />
-      <MenuPop />
+        <Brand />
+        <Tools />
+        <Sidebar />
+        <PoemList />
+        <PlaceHover />
+        <Card />
+        <BottomBar />
+        <SideVerse />
+        <Compass />
+        <Zoomer />
+      </div>
+
+      {/* 侧栏也是「背景」的一部分：面板开着时按 ⌘K 弹出命令面板，
+          底下这两块同样不该还能 Tab 进去 */}
+      <div inert={modalOpen}>
+        <Detail />
+        <Panel />
+        <MenuPop />
+      </div>
+
       <Palette />
       <Help />
       <Toast />

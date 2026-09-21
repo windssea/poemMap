@@ -12,6 +12,7 @@ import { PLACE_BY_ID } from "../data/places.js";
 import { PLACES } from "../data/places.js";
 import { eraOf } from "../data/eras.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
+import { useFocusReturn } from "../hooks/useFocusReturn.js";
 import { MOTION } from "../engine/motion.js";
 import { getEngine } from "../engine/mapEngine.js";
 import { backToPlaceList } from "../actions.js";
@@ -56,6 +57,11 @@ export default function Detail() {
   useEffect(function () {
     if (on && MOTION.on && ref.current) MOTION.cardIn(ref.current);
   }, [on, poemId]);
+
+  /* 打开时把焦点移进抽屉、关闭时还给打开它的那个地标（C10）。
+     抽屉本身 tabIndex=-1，好让它能接收焦点；读屏会念 aria-label「诗词详情」，
+     接着按 Tab 才走到关闭钮与「查看完整注释」。 */
+  useFocusReturn(on, ref, { delay: 80 });
 
   /* 换一首就回到顶部 */
   useLayoutEffect(function () {
@@ -105,7 +111,8 @@ export default function Detail() {
   }, [on, poemId, notesOpen]);
 
   return (
-    <aside id="detail" ref={ref} className={on ? "on" : ""} aria-hidden={!on} aria-label="诗词详情">
+    <aside id="detail" ref={ref} className={on ? "on" : ""} aria-hidden={!on}
+      aria-label="诗词详情" tabIndex={-1}>
       <button id="detailClose" className="panel-close" type="button" aria-label="关闭" onClick={closeDetail}>
         <IconClose />
       </button>

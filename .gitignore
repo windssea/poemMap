@@ -10,6 +10,12 @@ shots/
 .wrangler/
 .dev.vars
 
+# 本地密钥。TypeSafe/Jev 的 API key 走这里（tools/typesafe/ 的客户端会读），
+# 绝不能入库。
+.env
+.env.local
+.typesafe-key
+
 # 补编的「打捞产物」：由 tools/recover-from-dist.js 从旧构建里生成，
 # 内容已经全在 src/data/ 正册里，随时可重出，不必入库。
 # tools/_new/ 下其余 *.json 是补编的原始输入（apply-new-poems.js 读它们），要提交。
@@ -19,3 +25,6 @@ tools/_new/recovered.json
 # 数据一变就过期。真正要留的是写手产出的 story-*.json。
 tools/_new/_story-in-*.json
 
+
+# ̽���������ʱ�ļ���tools/summarize-*.js ������
+tmp-*.txt

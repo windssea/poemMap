@@ -55,22 +55,36 @@ export function visiblePlaces(poems) {
   return PLACES.filter(function (n) { return alive.has(n.id); });
 }
 
+/* 诗人 / 主题索引：**算一次就够**
+   ----------------------------------------------------------
+   POEMS 是模块级常量，运行期不会变，所以这两个索引是纯派生数据。
+   原来每次调用都全量遍历 325 首——而 Panel.jsx 是在渲染里直接调的，
+   等于每开一次面板、每换一次筛选都要重算一遍。
+   改成惰性缓存：第一次调用时算，之后直接返回同一个数组。
+   （不冻结返回值：调用方只读，但冻结会在 dev 里把 map/sort 也挡掉，得不偿失。） */
+let _poetIndex = null;
+let _themeIndex = null;
+
 /** 诗人索引：姓名 → 首数（按首数降序） */
 export function poetIndex() {
+  if (_poetIndex) return _poetIndex;
   const counts = {};
   POEMS.forEach(function (p) { counts[p.author] = (counts[p.author] || 0) + 1; });
-  return Object.keys(counts)
+  _poetIndex = Object.keys(counts)
     .sort(function (a, b) { return counts[b] - counts[a]; })
     .map(function (name) { return { name: name, count: counts[name] }; });
+  return _poetIndex;
 }
 
 /** 主题索引：标签 → 首数（按首数降序） */
 export function themeIndex() {
+  if (_themeIndex) return _themeIndex;
   const counts = {};
   POEMS.forEach(function (p) {
     (POEM_TAGS[p.id] || []).forEach(function (t) { counts[t] = (counts[t] || 0) + 1; });
   });
-  return Object.keys(counts)
+  _themeIndex = Object.keys(counts)
     .sort(function (a, b) { return counts[b] - counts[a]; })
     .map(function (tag) { return { tag: tag, count: counts[tag] }; });
+  return _themeIndex;
 }

@@ -1,8 +1,10 @@
 /* ============================================================
    索引面板（左滑出）：篇目 · 诗人 · 主题
    ============================================================ */
+import { useRef } from "react";
 import { useStore, closePanel, toggleDynasty, toggleForm, setAuthor, setTag, clearFacets } from "../store.js";
 import { useFilteredPoems } from "../hooks/useFiltered.js";
+import { useFocusReturn } from "../hooks/useFocusReturn.js";
 import { placeText, poetIndex, themeIndex } from "../data/select.js";
 import { AUTHORS, ERA_COUNT } from "../data/index.js";
 import { ERAS } from "../data/eras.js";
@@ -38,10 +40,15 @@ export default function Panel() {
   const school = useStore("school");
   const openPoemId = useStore("openPoemId");
   const list = useFilteredPoems();
+  const ref = useRef(null);
   const on = !!mode;
 
+  /* 与抽屉同一套：打开时焦点移入，关闭时还给打开它的按钮（C10） */
+  useFocusReturn(on, ref, { delay: 80 });
+
   return (
-    <aside id="panel" className={on ? "on" : ""} aria-hidden={!on} aria-label="索引面板">
+    <aside id="panel" ref={ref} className={on ? "on" : ""} aria-hidden={!on}
+      aria-label="索引面板" tabIndex={-1}>
       <header className="panel-head">
         <h2 id="panelTitle">{TITLES[mode] || "篇目"}</h2>
         <button id="panelClose" className="panel-close" type="button" aria-label="关闭" onClick={closePanel}>
