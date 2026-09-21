@@ -36,22 +36,22 @@ const REGION = {
 };
 /* 青绿设色：高原偏白、戈壁偏沙、江南偏绿，同一地区里再按 adcode 微差 */
 const TINTS = {
-  东北: ["#e3ddb9", "#dcd7b2"],
-  华北: ["#e9dcb8", "#e2d5b0"],
-  华东: ["#dde4bd", "#d7dfb6"],   // 江南
-  华中: ["#e2e2bb", "#dcdcb4"],
-  华南: ["#d8e3b8", "#d2deb1"],
-  西南: ["#dbe4bd", "#d5dfb6"],
-  西北: ["#eee3c2", "#e7dcb9"],
-  其他: ["#e5e0bd", "#dfdab6"],
+  东北: ["#e0dbbc", "#d9d5b5"],
+  华北: ["#e5dbbc", "#ded4b4"],
+  华东: ["#dce2bf", "#d6dcb9"],   // 江南
+  华中: ["#e0e0bd", "#d9d9b7"],
+  华南: ["#d6e0bb", "#d0dbb4"],
+  西南: ["#d9e2bf", "#d3dcb9"],
+  西北: ["#ebe2c5", "#e4dbbc"],
+  其他: ["#e2dec0", "#dcd8b9"],
 };
 const PROV_FIX = {
-  西藏自治区: ["#f3f0e2", "#efece0"],
-  新疆维吾尔自治区: ["#f0e5c6", "#e9dfbe"],
-  青海省: ["#ece5c9", "#e6dfc0"],
-  内蒙古自治区: ["#eaddb6", "#e3d7ae"],
-  四川省: ["#d9e2b9", "#d3ddb2"],
-  云南省: ["#d8e3b6", "#d2deaf"],
+  西藏自治区: ["#f2efe3", "#eeece1"],
+  新疆维吾尔自治区: ["#ede3c9", "#e6dec1"],
+  青海省: ["#e9e3cc", "#e4dec2"],
+  内蒙古自治区: ["#e7dbb9", "#e0d5b1"],
+  四川省: ["#d8dfbc", "#d2dab5"],
+  云南省: ["#d7e0b9", "#d1dab3"],
 };
 
 /** 把 #rrggbb 按百分比调亮/调暗（amt 为负即压深）。用于省区边缘的「托底」色。 */
@@ -65,12 +65,12 @@ function shade(hex, amt) {
 }
 
 /* 山脊勾线（羽化与柔光靠几何，不用 CSS blur） */
-const RIDGE_INK = ["#5f7d68", "#66886f", "#6b8f74", "#647e6c"];
+const RIDGE_INK = ["#617b69", "#698570", "#6e8c76", "#667c6c"];
 /* 山脚收进的「雾色」：接近省区底色，山脚由此没入地面/云气 */
-const RIDGE_MIST = "#e9e4c6";
+const RIDGE_MIST = "#e6e3c9";
 /* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释）。
    比主山最深的墨绿再暗一档，但靠低透明度只当「一层阴影」用。 */
-const FACE_INK = "#4d6b59";
+const FACE_INK = "#4f695a";
 const CHINA_BOUNDS = L.latLngBounds([[17.4, 72.5], [54.2, 135.8]]);
 const PANE_Z = { prov: 400, terrain: 410, hydro: 418, wall: 425, border: 430, geoLabels: 470 };
 
@@ -140,7 +140,7 @@ export function createEngine(mapEl) {
       return {
         fillColor: "url(#pg" + f.properties.adcode + ")",
         fillOpacity: 1,
-        color: "#aab08f",
+        color: "#a8ad92",
         weight: 1.5,
         opacity: 0.38,         // 省界只留一线淡痕，柔和的过渡交给径向渐变
         lineJoin: "round",
@@ -168,9 +168,9 @@ export function createEngine(mapEl) {
     /* 国境大晕：西北暖沙、东南青绿。铺在整个国土上，
        让 34 个省区从「各自一块色」变成「一张画上的明暗」。 */
     defs += '<linearGradient id="landWash" x1="0" y1="0" x2="1" y2="1">' +
-      '<stop offset="0" stop-color="#dcc79b" stop-opacity="0.4"/>' +
-      '<stop offset="0.42" stop-color="#e8e0bd" stop-opacity="0.06"/>' +
-      '<stop offset="1" stop-color="#aecfa4" stop-opacity="0.36"/></linearGradient>';
+      '<stop offset="0" stop-color="#d7c6a0" stop-opacity="0.4"/>' +
+      '<stop offset="0.42" stop-color="#e5dec0" stop-opacity="0.06"/>' +
+      '<stop offset="1" stop-color="#afcca7" stop-opacity="0.36"/></linearGradient>';
     /* 纸纹：斜向细线，只在国土上铺一层（.05 的白噪点之外再给一点「纸的走向」） */
     defs += '<pattern id="landGrain" width="7" height="7" patternUnits="userSpaceOnUse"' +
       ' patternTransform="rotate(38)">' +
@@ -195,7 +195,7 @@ export function createEngine(mapEl) {
     L.geoJSON(country, {
       pane: "prov",
       interactive: false,
-      style: { fill: false, color: "#c6ba95", weight: 3, opacity: 0.34, lineJoin: "round" },
+      style: { fill: false, color: "#c2b999", weight: 3, opacity: 0.34, lineJoin: "round" },
     }).addTo(map);
   }
 
@@ -240,14 +240,14 @@ export function createEngine(mapEl) {
      这道柔光同时是主山与远山的过渡带：白绿之间的硬边由它化开。 */
   if ((T.hazes || []).length) {
     L.polyline(T.hazes.map(function (h) { return h.latlngs; }), {
-      pane: "terrain", color: "#a9cbb5", weight: 10, opacity: 0.22,
+      pane: "terrain", color: "#acc8b5", weight: 10, opacity: 0.22,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
   /* 皴线合并成一条多段线：上百条短线只花一个 SVG 图元 */
   if ((T.grains || []).length) {
     L.polyline(T.grains, {
-      pane: "terrain", color: "#789581", weight: 1.1, opacity: 0.22,
+      pane: "terrain", color: "#7a9382", weight: 1.1, opacity: 0.22,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
@@ -261,7 +261,7 @@ export function createEngine(mapEl) {
      别太亮——纯白会跟远山的浅色叠成「雪线」。 */
   if ((T.crests || []).length) {
     L.polyline(T.crests, {
-      pane: "terrain", color: "#f2f9ef", weight: 1.6, opacity: 0.32,
+      pane: "terrain", color: "#f3f9ef", weight: 1.6, opacity: 0.32,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
@@ -299,23 +299,23 @@ export function createEngine(mapEl) {
   /* ---- 国境 ---- */
   L.geoJSON(country, {
     pane: "border",
-    style: { color: "#a9b093", weight: 1.5, fill: false, lineJoin: "round", opacity: 0.8 },
+    style: { color: "#a8ae95", weight: 1.5, fill: false, lineJoin: "round", opacity: 0.8 },
   }).addTo(map);
 
   /* ---- 水系 / 运河 / 长城 ---- */
   (GEO_EXTRAS.rivers || []).forEach(function (r) {
     const pts = smoothPath(r.pts, 7);
-    L.polyline(pts, { pane: "hydro", color: "#8fb6c9", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
-    L.polyline(pts, { pane: "hydro", color: "#5f9fb8", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(pts, { pane: "hydro", color: "#93b4c5", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(pts, { pane: "hydro", color: "#659db2", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   });
   if (GEO_EXTRAS.canal) {
     const cpts = smoothPath(GEO_EXTRAS.canal.pts, 7);
-    L.polyline(cpts, { pane: "hydro", color: "#9dc0cb", weight: 1.1, opacity: 0.6, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(cpts, { pane: "hydro", color: "#a0bfc8", weight: 1.1, opacity: 0.6, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
   if (GEO_EXTRAS.wall) {
     const wpts = smoothPath(GEO_EXTRAS.wall.pts, 6);
-    L.polyline(wpts, { pane: "wall", color: "#d98b5f", weight: 5, opacity: 0.22, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
-    L.polyline(wpts, { pane: "wall", color: "#b8472e", weight: 2.4, opacity: 0.92, dashArray: "2 5", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(wpts, { pane: "wall", color: "#d08e68", weight: 5, opacity: 0.22, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(wpts, { pane: "wall", color: "#af4d38", weight: 2.4, opacity: 0.92, dashArray: "2 5", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
 
   /* ---- 地名：山河名 + 省名 ---- */
