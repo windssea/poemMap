@@ -135,18 +135,20 @@ async function main() {
         width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
       });
     }
-    /* CDP_VIEWPORT=980x860：任意视口尺寸。
+    /* CDP_VIEWPORT=980x860 或 980x860@3：任意视口尺寸，可选设备像素比。
        只有 390 与全屏两档是量不出「顶栏在两行之间错位」这类问题的——
-       那个 bug 只在中间的某个宽度区间出现。 */
+       那个 bug 只在中间的某个宽度区间出现。
+       @N 主要用来**判断小字渲染质量**：12px 的字在 1× 截图里根本看不清
+       有没有发虚，3× 才能看出光晕和亚像素的差别。 */
     if (process.env.CDP_VIEWPORT) {
-      const m = /^(\d+)x(\d+)$/.exec(process.env.CDP_VIEWPORT.trim());
+      const m = /^(\d+)x(\d+)(?:@([\d.]+))?$/.exec(process.env.CDP_VIEWPORT.trim());
       if (m) {
         await cdp.send("Emulation.setDeviceMetricsOverride", {
           width: Number(m[1]), height: Number(m[2]),
-          deviceScaleFactor: 1, mobile: false,
+          deviceScaleFactor: m[3] ? Number(m[3]) : 1, mobile: false,
         });
       } else {
-        console.warn("CDP_VIEWPORT 格式应为 宽x高，例如 980x860；已忽略：" + process.env.CDP_VIEWPORT);
+        console.warn("CDP_VIEWPORT 格式应为 宽x高 或 宽x高@倍率，例如 980x860@2；已忽略：" + process.env.CDP_VIEWPORT);
       }
     }
 
@@ -219,7 +221,20 @@ async function main() {
       });
       console.log(JSON.stringify(r.result && r.result.value !== undefined ? r.result.value : r, null, 2));
     } else {
-      const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
+      /* CDP_CLIP=x,y,w,h：只截一块。
+         判断小字渲染质量必须用裁剪——整屏 1424px 的图里，12px 的字
+         在预览里被缩得看不清，而放大 DPR 又会让字变清楚（等于测了个假的）。
+         只有「1× 渲染 + 按原像素裁剪」才是用户真正看到的那些像素。 */
+      const clipOpt = {};
+      if (process.env.CDP_CLIP) {
+        const c = process.env.CDP_CLIP.split(",").map(Number);
+        if (c.length === 4 && c.every((n) => !isNaN(n))) {
+          clipOpt.clip = { x: c[0], y: c[1], width: c[2], height: c[3], scale: 1 };
+        } else {
+          console.warn("CDP_CLIP 格式应为 x,y,w,h；已忽略：" + process.env.CDP_CLIP);
+        }
+      }
+      const shot = await cdp.send("Page.captureScreenshot", Object.assign({ format: "png" }, clipOpt));
       const bufA = Buffer.from(shot.data, "base64");
       fs.writeFileSync(outPng, bufA);
       console.log("screenshot -> " + outPng + " (" + fs.statSync(outPng).size + " bytes)");
