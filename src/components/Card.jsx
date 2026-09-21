@@ -50,6 +50,15 @@ export default function Card() {
 
   return (
     <section id="card" ref={ref} aria-hidden={!on} aria-live="polite"
+      /* ⚠️ 光有 aria-hidden 不够。
+         `on` 恒为 false，卡片靠 opacity:0 + scale(.975) 藏起来——
+         它**没有** display:none 也没有 visibility:hidden，所以里面
+         「收起」与「此处另有 N 首」两颗按钮照旧在 Tab 序里：
+         键盘用户会停在一个完全看不见的按钮上。
+         inert 才是真的把这棵子树从焦点与辅助技术里摘出去。
+         （顺带一提：它还往 DOM 里塞了第二颗 .others-more，
+          任何 `document.querySelector('.others-more')` 都会先抓到它。） */
+      inert={!on}
       className={on ? "on" : ""}>
       <button id="cardClose" className="card-close" type="button" aria-label="收起" onClick={closeCard}>
         <IconClose />

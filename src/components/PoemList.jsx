@@ -46,7 +46,7 @@ export default function PoemList() {
 
   return (
     <div id="poemList" ref={ref} className={"poem-list" + (on ? " on" : "")}
-      aria-hidden={!on}>
+      aria-hidden={!on} inert={!on}>
       {node && (
         <>
           <div className="pl-head">

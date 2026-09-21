@@ -423,13 +423,25 @@ export function createEngine(mapEl) {
      ============================================================ */
   let roveEl = null;
 
+  /* 珠子元素的引用缓存在地标对象上，与上面 nameElOf 同一套做法：
+     setIcon 之后元素会被替换，用 isConnected 兜住，不必手工失效。
+     不缓存的话，每次 moveend 都要对 155 个地标各做一次 querySelector。 */
+  function dotElOf(n) {
+    let el = n.__dotEl;
+    if (!el || !el.isConnected) {
+      const host = n.marker.getElement();
+      el = host ? host.querySelector(".dot-wrap") : null;
+      n.__dotEl = el;
+    }
+    return el;
+  }
+
   function markerNodes() {
     const size = map.getSize();
     const out = [];
     PLACES.forEach(function (n) {
       if (!map.hasLayer(n.marker)) return;
-      const host = n.marker.getElement();
-      const dot = host && host.querySelector(".dot-wrap");
+      const dot = dotElOf(n);
       if (!dot) return;
       const pt = map.latLngToContainerPoint([n.lat, n.lng]);
       if (pt.x < -40 || pt.y < -40 || pt.x > size.x + 40 || pt.y > size.y + 40) return;
@@ -519,6 +531,20 @@ export function createEngine(mapEl) {
     return el;
   }
 
+  /* 只在值真的变了才写样式（C06）
+     ------------------------------------------------------------
+     layoutLabels() 在平移时每个节流帧都会跑一遍，155 个地标 × 2 处
+     （名签透明度 + 珠子透明度）＝ 每帧三百来次 style 赋值。
+     但绝大多数帧里这些值是**没变的**（名签还是显示、珠子还是不透明），
+     而每次赋值浏览器都要重新解析样式、标脏元素。
+     把上次写过的值缓存到元素上，值没变就直接跳过——
+     一轮纯平移下来能省掉八九成的写入。 */
+  function setOp(el, v) {
+    if (!el || el.__op === v) return;
+    el.__op = v;
+    el.style.opacity = v;
+  }
+
   function layoutLabels() {
     const size = map.getSize();
     const zoom = map.getZoom();
@@ -558,7 +584,7 @@ export function createEngine(mapEl) {
     items.forEach(function (o) {
       /* 珠子的疏密先落定：放在 label 早退之前，
          免得某个地标没有名签时珠子透明度就漏更新了。 */
-      if (o.el) o.el.style.opacity = o.recede ? ".52" : "1";
+      setOp(o.el, o.recede ? ".52" : "1");
       const label = nameElOf(o.n);
       if (!label) return;
       let on;
@@ -575,11 +601,10 @@ export function createEngine(mapEl) {
         }
         if (on) { boxes.push(box); shown++; }
       }
-      label.style.opacity = on ? "1" : "0";
+      setOp(label, on ? "1" : "0");
     });
 
-    /* ---- 山名：只与「别的山名」互斥 ----
-       如果连地标名也一起避让，全国视野下 13 条主要山脉会被挤得只剩
+    /* ---- 山名：只与「别的山名」互斥 ----       如果连地标名也一起避让，全国视野下 13 条主要山脉会被挤得只剩
        六七个。山名字小、带浅色描边，与地标签轻微相叠仍然读得出来，
        所以这里用一个独立的占位池，让山脉的名字尽量标全。 */
     const rankCut = zoom < 4.1 ? 0 : 2;
@@ -593,10 +618,10 @@ export function createEngine(mapEl) {
       const el = m.marker.getElement();
       const span = el && el.querySelector("span");
       if (!span) return;
-      if (m.rank > rankCut) { span.style.opacity = "0"; return; }
+      if (m.rank > rankCut) { setOp(span, "0"); return; }
       const pt = map.latLngToContainerPoint([m.lat, m.lng]);
       if (pt.x < -90 || pt.y < -60 || pt.x > size.x + 90 || pt.y > size.y + 60) {
-        span.style.opacity = "0";
+        setOp(span, "0");
         return;
       }
       /* 判定框略小于实际字宽：允许不到一字的轻微相叠 */
@@ -608,7 +633,7 @@ export function createEngine(mapEl) {
         if (!(box.x2 < b.x1 || b.x2 < box.x1 || box.y2 < b.y1 || b.y2 < box.y1)) on = false;
       }
       if (on) mtnPlaced.push(box);
-      span.style.opacity = on ? "1" : "0";
+      setOp(span, on ? "1" : "0");
     });
   }
   window.__layout = layoutLabels;

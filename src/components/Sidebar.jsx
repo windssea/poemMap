@@ -7,7 +7,7 @@
      3. 选中项自动滚进视野 + ↑↓ 键上下走，不必先用鼠标去够。
    ============================================================ */
 import { memo, useCallback, useEffect, useRef } from "react";
-import { useStore, toggleDynasty, closeSide } from "../store.js";
+import { useStore, toggleDynasty, toggleSide, closeSide } from "../store.js";
 import { placeText } from "../data/select.js";
 import { ERAS } from "../data/eras.js";
 import { ERA_COUNT } from "../data/index.js";
@@ -101,17 +101,33 @@ export default function Sidebar() {
     box.scrollTop += (r.top - b.top) - (b.height - r.height) / 2;
   }, [openPoemId, sideOpen]);
 
-  /* ↑↓ 上下走篇目。页面本身不滚动（body overflow:hidden），
-     所以这两个键不会和「翻页」打架。 */
+  /* ↑↓ 上下走篇目（C18）。
+     ----------------------------------------------------------
+     原来这组键只在篇目栏展开时才响应——收起状态按 ↑↓ 毫无反应，
+     而篇目栏默认就是收起的，等于绝大多数时候这两个键是死的。
+     现在：收起时按 ↓ 会自动展开篇目栏并从第一首开始，按 ↑ 从最后一首开始。
+
+     ⚠️ 两处让位：
+     1. 输入框里不抢（在搜索框里按方向键是移动光标）。
+     2. **焦点在地图里时让给 Leaflet** —— 地图自带方向键平移，
+        全局劫持会让键盘用户没法挪地图。 */
   useEffect(function () {
-    if (!sideOpen) return;
     function onKey(e) {
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (t && t.closest && t.closest("#map")) return;
       if (!list.length) return;
       e.preventDefault();
+
+      if (!sideOpen) {
+        toggleSide();
+        MOTION.sideIn();
+        pick(e.key === "ArrowDown" ? list[0].id : list[list.length - 1].id);
+        return;
+      }
+
       const cur = list.findIndex(function (p) { return p.id === openPoemId; });
       let n;
       if (cur === -1) n = e.key === "ArrowDown" ? 0 : list.length - 1;
@@ -123,7 +139,12 @@ export default function Sidebar() {
   }, [sideOpen, list, openPoemId, pick]);
 
   return (
-    <aside id="sidebar" ref={ref} aria-label="篇目索引">
+    <aside id="sidebar" ref={ref} aria-label="篇目索引"
+      /* ⚠️ 收起时必须是 inert，不能只靠 transform + opacity:0 藏。
+         实测：收起状态下 sidebar 里仍有 **330 个**可聚焦元素留在 Tab 序里
+         —— 键盘用户从页首按 Tab，会先穿过 330 个看不见的篇目行。
+         （这一条原审计没有，是补 Tab 序检查时查出来的。） */
+      inert={!sideOpen}>
       <div className="tabs" id="tabs" role="group" aria-label="按朝代筛选">
         {TABS.filter(function (t) {
           /* 先唐页签只在全库真有先唐作品时出现。

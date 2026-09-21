@@ -16,7 +16,7 @@ import { useFocusReturn } from "../hooks/useFocusReturn.js";
 import { MOTION } from "../engine/motion.js";
 import { getEngine } from "../engine/mapEngine.js";
 import { backToPlaceList } from "../actions.js";
-import { IconChevronDown, IconClose, IconPin } from "./icons.jsx";
+import { IconChevronDown, IconClose, IconList, IconPin } from "./icons.jsx";
 
 export default function Detail() {
   const poemId = useStore("detailPoemId");
@@ -73,20 +73,26 @@ export default function Detail() {
      连翻几首时更明显。地标露不露出来交给用户自己拖。
      （从篇目栏 / 命令面板点进来时仍会飞过去——那是用户明确要求「去这里」。） */
 
-  /* 键盘 ←/→ 翻篇。焦点在输入框里时不抢。 */
+  /* 键盘 ←/→ 翻篇、L 回到「此处的其他几首」。焦点在输入框里时不抢。 */
   useEffect(function () {
     if (!on) return;
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      if (e.key === "ArrowLeft") { e.preventDefault(); go(prev); }
-      else if (e.key === "ArrowRight") { e.preventDefault(); go(next); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); go(prev); return; }
+      if (e.key === "ArrowRight") { e.preventDefault(); go(next); return; }
+      /* L = 回到这一处的篇目（C19：从浮层选了一首之后浮层就关了，
+         想在同处换一首，键盘也得有路可走） */
+      if ((e.key === "l" || e.key === "L") && rest.length && node) {
+        e.preventDefault();
+        backToPlaceList(node.id);
+      }
     }
     document.addEventListener("keydown", onKey);
     return function () { document.removeEventListener("keydown", onKey); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, prev, next, node]);
+  }, [on, prev, next, node, rest.length]);
 
   /* 量一次诗栏是否横向溢出 + 重置进度；换诗、改窗口、展开注释都要重量
      （展开注释会改抽屉宽度，诗栏的可用宽度跟着变） */
@@ -112,6 +118,9 @@ export default function Detail() {
 
   return (
     <aside id="detail" ref={ref} className={on ? "on" : ""} aria-hidden={!on}
+      /* 关闭时是 translateX(102%) 滑出屏外，元素还在、仍在 Tab 序里——
+         光 aria-hidden 挡不住键盘。inert 才是真把这棵子树摘出去。 */
+      inert={!on}
       aria-label="诗词详情" tabIndex={-1}>
       <button id="detailClose" className="panel-close" type="button" aria-label="关闭" onClick={closeDetail}>
         <IconClose />
@@ -177,9 +186,15 @@ export default function Detail() {
               </div>
               {!!rest.length && (
                 <div className="d-others">
+                  {/* C22/C19：原来是一枚与标签同级的虚线药丸，很容易被当成装饰。
+                      它其实是「同一处换一首读」的唯一入口——从浮层里选了一首之后
+                      浮层就关了，要再读同处的另一首，只能靠这里（或重新点地标）。
+                      所以做成实心按钮、给图标、标上快捷键。 */}
                   <button type="button" className="others-more"
                     onClick={() => backToPlaceList(node.id)}>
-                    此处另有 {rest.length} 首 ›
+                    <IconList />
+                    此处另有 {rest.length} 首
+                    <kbd>L</kbd>
                   </button>
                 </div>
               )}
@@ -237,6 +252,14 @@ export default function Detail() {
                   中华诗词地图 · 全离线收录 {POEMS.length} 首 / {PLACES.length} 处地标 / {AUTHOR_COUNT} 位作者
                 </span>
               </footer>
+
+              {/* C21：读完落款之后原来什么都没有——想收起只能去右上角找关闭钮或按 Esc。
+                  读到尾的人最自然的下一步是「合上」，所以在卷尾给一个收束动作。 */}
+              <div className="d-endcap">
+                <button type="button" className="d-done" onClick={closeDetail}>
+                  收起，回到地图 <kbd>Esc</kbd>
+                </button>
+              </div>
             </>
           )}
         </div>

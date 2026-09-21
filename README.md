@@ -119,6 +119,11 @@ poemMap/
 │   ├── dedupe-data.js      删掉分批并行写重复收录的那些条目（连同标签）
 │   ├── recover-from-dist.js 应急：从旧构建产物里把诗词/作者/标签三段字面量捞回来
 │   ├── check-syntax.js     数据文件的语法与编码体检（BOM / 替换字符 / 条目数）
+│   ├── contrast.js         WCAG 2.1 对比度实算，并给出「压暗到刚好达标」的色值
+│   ├── fix-contrast.js     把 ink-4 的文字用处迁到 ink-3、图形用处迁到 ink-gfx
+│   ├── typesafe/           Jev（System One）客户端与页面审计：candidates / audit / last-audit.json
+│   ├── probes/a11y.js      键盘走查：地标可达、焦点移入、inert、Tab 序泄漏
+│   ├── probes/contrast.js  渲染实测：遍历所有文字节点算对比度
 │   ├── list-places.js      列出已收录地标（按省分组）与全部 id，补编前查重用
 │   ├── list-by.js          按作者/地标/朝代列出篇目（`node tools/list-by.js 李白`）
 │   ├── show-poem.js        按 id 或地标名列出条目摘要
@@ -276,11 +281,29 @@ poemMap/
 | `/` | 光标落到右上搜索框 |
 | `?` | 快捷键速查卡片 |
 | `←` `→` | 在读诗时按**当前筛选顺序**翻上一篇 / 下一篇 |
-| `↑` `↓` | 篇目栏展开时上下走，选中并飞到该地标 |
+| `L` | 在读诗时回到**这一处的篇目**，换一首接着读 |
+| `↑` `↓` | 上下走篇目；篇目栏收起时会自动展开。焦点在地图里时让给地图平移 |
 | `Esc` | 逐层收起：命令面板 → 速查 → 菜单 → 篇目栏 → 浮层 → 抽屉 |
 
+- **藏起来的界面必须 `inert`，光 `aria-hidden` 不够。**
+  这是本轮最值得记的一条。`opacity: 0`、`transform: translateX(102%)` 这类「藏法」
+  **不会**把元素移出 Tab 序——只有 `display:none` / `visibility:hidden` / `inert` 才会；
+  而 `aria-hidden` 只管辅助技术、不管键盘。
+  实测（`tools/probes/a11y.js` 的 Tab 序检查）：收起的篇目栏里曾有 **330 个**可聚焦元素、
+  关掉的菜单里 8 个、停用的卡片里 2 个——键盘用户从页首按 Tab，要先穿过 340 个看不见的控件。
+  现在 `#sidebar` / `#detail` / `#panel` / `#poemList` / `#menuPop` / `#card`
+  在收起时一律 `inert`，合计 **0**。
+  ⚠️ React 19 里 `inert` 是**布尔**属性：传字符串 `""` 会被当假值、整个属性不渲染，必须传 `true`。
 - **命令面板**（`components/Palette.jsx`）：为什么需要它——收了三百首之后，右上那个搜索框只能搜到「诗」，
   想跳到李白、去长安、换个主题，都得先想起菜单在哪一层。
+- **面板检索**：诗人索引 114 位、主题索引 64 个，两位数和三位数的列表靠翻是翻不动的，
+  两个面板各带一个搜索框。这是**面板内的局部筛选**，不进 store——它不改变「当前收录哪些诗」，
+  只改变「这一栏显示哪几行」，退出面板就作废。
+- **「同一处换一首」的入口**：从浮层里选了一首之后浮层就关了，想再读同处的另一首，
+  只能靠抽屉里那颗「此处另有 N 首」（或重新点地标）。所以它不能长得像装饰——
+  现在是实心朱色描边 + 图标 + `L` 快捷键提示。
+- **卷尾收束**：读完落款之后原来就是尽头，想收起只能去右上角找关闭钮或按 Esc。
+  现在卷尾有一枚「收起，回到地图」。
   匹配用「子串优先 + 子序列兜底」：中文没有词形变化，逐字子序列够用，
   「将进」命中《将进酒》，跨字跳着打也能中。空输入时给的不是空白，
   而是「动作 + 题咏最多的地方」，面板一开就有东西可点。索引只在首次打开时建一次。
@@ -701,6 +724,9 @@ node tools/list-places.js                        # 已收录地标（按省分�
 node tools/list-by.js 李白                        # 某位作者的篇目（也可 --place= / --dynasty=）
 node tools/show-poem.js --place=洞庭湖            # 某地标名下的所有诗
 node tools/stats.js 苏轼 李白                     # 各朝代/体裁/指定作者的首数
+node tools/contrast.js --fix                      # WCAG 对比度实算 + 给出达标色值
+node tools/cdp.js http://127.0.0.1:5179/ --eval "@tools/probes/a11y.js" 7000     # 键盘走查 + Tab 序泄漏
+node tools/cdp.js http://127.0.0.1:5179/ --eval "@tools/probes/contrast.js" 7000 # 渲染实测每一处文字的对比度
 node tools/check-ranges.js                       # 校验山系的位置与尺度（离线，不开浏览器）
 node tools/cdp.js http://127.0.0.1:5179/ a.png 7000        # 截图
 node tools/cdp.js http://127.0.0.1:5179/ --eval "@tools/qa-motion.js" 8000   # 动效与交互自检

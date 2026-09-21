@@ -25,6 +25,11 @@ tools/_new/recovered.json
 # 数据一变就过期。真正要留的是写手产出的 story-*.json。
 tools/_new/_story-in-*.json
 
-
-# ̽���������ʱ�ļ���tools/summarize-*.js ������
+# 探针输出的临时文件（tools/summarize-*.js 读它）
 tmp-*.txt
+
+# 外部工具的本地状态 / 脚本。不是本项目的内容。
+# 加进忽略而不是删掉：删了就找不回来，忽略掉随时还能用，
+# 同时让 `git status` 保持干净。
+.reasonix/
+.typesafe-smoke.mjs

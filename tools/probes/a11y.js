@@ -12,7 +12,9 @@
   document.querySelectorAll("button, a[href], input, [role=button]").forEach((el) => {
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
-    if (cs.display === "none" || cs.visibility === "hidden" || r.width < 1) return;
+    /* inert 子树整棵跳过：里面的东西既不可聚焦也不该被辅助技术读到 */
+    if (el.closest("[inert]")) return;
+    if (cs.display === "none" || cs.visibility === "hidden" || +cs.opacity < 0.15) return;
     /* ::after 撑开的命中区不算在 rect 里，单独量。
        只认 px 值——百分比是相对包含块的，parseFloat 会把 "50%" 读成 50，
        凭空算出一个巨大的命中区（这个坑踩过一次）。 */
@@ -29,6 +31,31 @@
     }
   });
   out.C13_smallTargets = small;
+
+  /* ---------- Tab 序检查：藏起来的面板里还留着多少可聚焦元素 ----------
+     这是本轮真正查出问题的那一项。`opacity: 0` / `transform: translateX(102%)`
+     这类「藏法」**不把元素移出 Tab 序**，只有 display:none / visibility:hidden /
+     inert 才会。实测：收起的篇目栏里曾有 330 个可聚焦元素、关掉的菜单里 8 个、
+     停用的卡片里 2 个 —— 键盘用户从页首按 Tab 要先穿过它们。
+     aria-hidden 也挡不住键盘（它只管辅助技术，不管焦点）。 */
+  const focusable = (root) => Array.from(
+    root.querySelectorAll("a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])")
+  ).filter((e) => !e.disabled && !e.closest("[inert]"));
+  const hiddenSurfaces = {};
+  [["#sidebar", "side-open"], ["#detail", null], ["#panel", null], ["#poemList", null]]
+    .forEach(([sel, flag]) => {
+      const el = document.querySelector(sel);
+      if (!el) return;
+      const visible = flag ? document.body.classList.contains(flag) : el.classList.contains("on");
+      if (visible) return;                       // 开着的时候不算问题
+      hiddenSurfaces[sel] = focusable(el).length;
+    });
+  const menu = document.getElementById("menuPop");
+  if (menu && menu.hasAttribute("hidden")) hiddenSurfaces["#menuPop"] = focusable(menu).length;
+  const card = document.getElementById("card");
+  if (card && !card.classList.contains("on")) hiddenSurfaces["#card"] = focusable(card).length;
+  out.tabOrderLeaks = hiddenSurfaces;
+  out.tabOrderLeakTotal = Object.values(hiddenSurfaces).reduce((a, b) => a + b, 0);
 
   /* ---------- C09：地标能不能用键盘走到 ---------- */
   const dots = Array.from(document.querySelectorAll(".dot-wrap"));

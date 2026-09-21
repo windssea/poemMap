@@ -1826,6 +1826,57 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 .panel-empty { padding: 40px 12px; text-align: center; font-size: 13.5px; line-height: 2; color: var(--ink-3); }
 .panel-note { margin: 6px 4px 12px; font-size: 12px; letter-spacing: .06em; color: var(--ink-3); }
 
+/* 面板内的检索框（C14 / C15）：与右上搜索框同一套纸面，但更紧凑 */
+.panel-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  margin: 0 0 10px;
+  padding: 0 8px 0 10px;
+  background: linear-gradient(180deg, #fffdf7, #faf5e8);
+  border: 1px solid rgba(214, 196, 164, .95);
+  border-radius: 9px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.panel-search:focus-within {
+  border-color: rgba(168, 50, 42, .45);
+  box-shadow: 0 0 0 3px rgba(168, 50, 42, .08);
+}
+.panel-search .i-search {
+  flex: none;
+  width: 14px; height: 14px;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+.panel-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: var(--ink);
+  background: none;
+  border: none;
+  outline: none;
+}
+.panel-search input::placeholder { color: var(--ink-3); }
+.panel-search input::-webkit-search-cancel-button { display: none; }
+.panel-search .ps-n { flex: none; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.panel-search .ps-x {
+  flex: none;
+  width: 18px; height: 18px;
+  padding: 3px;
+  background: rgba(120, 108, 88, .12);
+  border: none;
+  border-radius: 50%;
+}
+.panel-search .ps-x:hover { background: rgba(168, 50, 42, .14); }
+.panel-search .ps-x svg { width: 100%; height: 100%; fill: none; stroke: var(--ink-2); stroke-width: 2.4; stroke-linecap: round; }
+
 /* ══════════ 地标悬停卡 ══════════
    珠子旁边浮出的一张巴掌大的纸卡：这一处是哪、收了哪几首。
    原生 title 的气泡又慢又丑、还只能一行纯文本，这里是它的替身。 */
@@ -2292,19 +2343,75 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 .pl-item.on .pl-t { color: var(--seal-d); font-weight: 600; }
 .pl-item .pl-m { font-size: 12px; letter-spacing: .05em; color: var(--ink-3); }
 
-/* 卡片内「此处另有 N 首 ›」再入口 */
+/* 卡片内「此处另有 N 首」再入口（C22）
+   ----------------------------------------------------------
+   它其实是「同一处换一首读」的唯一入口——从浮层里选了一首之后浮层就关了。
+   原来做成与标签同级的浅色虚线药丸，很容易被当成装饰划过去。
+   改成实心朱色描边 + 图标 + 快捷键提示，权重提到「这是一颗按钮」。 */
 .others-more {
-  padding: 6px 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
   font-family: var(--serif);
   font-size: 13.5px;
   letter-spacing: .06em;
-  color: var(--seal);
-  background: rgba(168, 50, 42, .06);
-  border: 1px dashed rgba(168, 50, 42, .42);
+  color: var(--seal-d);
+  background: rgba(168, 50, 42, .07);
+  border: 1px solid rgba(168, 50, 42, .42);
   border-radius: 999px;
-  transition: background .18s ease, border-color .18s ease;
+  box-shadow: 0 1px 2px rgba(140, 46, 34, .06);
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
-.others-more:hover { background: rgba(168, 50, 42, .13); border-style: solid; }
+.others-more:hover {
+  background: rgba(168, 50, 42, .13);
+  border-color: var(--seal);
+  box-shadow: 0 3px 10px rgba(140, 46, 34, .16);
+}
+.others-more:active { transform: translateY(1px); }
+.others-more svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.others-more kbd {
+  padding: 1px 5px;
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--seal);
+  background: rgba(255, 253, 247, .9);
+  border: 1px solid rgba(168, 50, 42, .3);
+  border-radius: 4px;
+}
+
+/* 卷尾收束（C21）：读完落款后给一个「合上」的动作。
+   原来读完就是尽头，想收起只能去右上角找关闭钮或按 Esc。 */
+.d-endcap {
+  display: flex;
+  justify-content: center;
+  margin: 22px auto 0;
+  max-width: 560px;
+}
+.d-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  font-family: var(--serif);
+  font-size: 13.5px;
+  letter-spacing: .1em;
+  color: var(--ink-2);
+  background: rgba(255, 253, 247, .8);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+.d-done:hover { color: var(--seal); border-color: rgba(168, 50, 42, .42); background: #fff; }
+.d-done kbd {
+  padding: 1px 5px;
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: rgba(195, 166, 103, .14);
+  border: 1px solid rgba(195, 166, 103, .3);
+  border-radius: 4px;
+}
 
 /* ══════════ 开场（动效） ══════════ */
 html.motion-prep #brand,

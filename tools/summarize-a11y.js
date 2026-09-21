@@ -21,6 +21,13 @@ console.log("   " + JSON.stringify(o.C11, null, 1).replace(/\n/g, "\n   "));
 console.log("\nC08 索引缓存：");
 console.log("   " + JSON.stringify(o.C08, null, 1).replace(/\n/g, "\n   "));
 
+console.log("\nTab 序泄漏（藏起来的界面里还剩多少可聚焦元素，0 才对）：");
+const leaks = o.tabOrderLeaks || {};
+const leakRows = Object.entries(leaks);
+if (!leakRows.length) console.log("   无（没有藏起来的面板）");
+else leakRows.forEach(function ([k, v]) { console.log("   " + k.padEnd(12) + v + (v ? "   ⚠" : "   ✔")); });
+console.log("   合计：" + (o.tabOrderLeakTotal || 0) + (o.tabOrderLeakTotal ? "   ⚠ 键盘要穿过这些看不见的控件" : "   ✔"));
+
 console.log("\nC13 命中区 < 44px 的元素：");
 const agg = {};
 (o.C13_smallTargets || []).forEach(function (x) {

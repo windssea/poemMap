@@ -157,7 +157,8 @@ export function MenuPop() {
   }
 
   return (
-    <div id="menuPop" className="menu-pop" ref={boxRef} hidden={!menuOpen}>
+    <div id="menuPop" className="menu-pop" ref={boxRef} hidden={!menuOpen}
+      inert={!menuOpen}>
       <button type="button" onClick={act(openPalette)}>
         命令面板 <i>⌘K</i>
       </button>
