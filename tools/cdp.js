@@ -122,6 +122,20 @@ async function main() {
         width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
       });
     }
+    /* CDP_VIEWPORT=980x860：任意视口尺寸。
+       只有 390 与全屏两档是量不出「顶栏在两行之间错位」这类问题的——
+       那个 bug 只在中间的某个宽度区间出现。 */
+    if (process.env.CDP_VIEWPORT) {
+      const m = /^(\d+)x(\d+)$/.exec(process.env.CDP_VIEWPORT.trim());
+      if (m) {
+        await cdp.send("Emulation.setDeviceMetricsOverride", {
+          width: Number(m[1]), height: Number(m[2]),
+          deviceScaleFactor: 1, mobile: false,
+        });
+      } else {
+        console.warn("CDP_VIEWPORT 格式应为 宽x高，例如 980x860；已忽略：" + process.env.CDP_VIEWPORT);
+      }
+    }
 
     // CDP_INJECT=<文件>：在每个新文档的最前面注入脚本——量「首帧起」的布局时序
     // （React 提交与动画的中间态只有从第 0 帧开始采样才看得到）。

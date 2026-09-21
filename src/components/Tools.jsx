@@ -89,36 +89,52 @@ export function Tools() {
         </svg>
       </div>
 
+      {/* 筛选条：**每组一枚自己的胶囊**，不是一个装着两组的大胶囊。
+          ------------------------------------------------------------
+          原来是一个 .chipbar 胶囊里 flex-wrap，窄屏一换行就露馅：
+          第一行是 4 个朝代 + 分隔线，第二行是 3 个体裁 + 2 个圆钮，
+          两行左对齐但宽度不同 → 右缘参差，而 999px 圆角套在两行上
+          又变成一个怪异的椭圆。用户截图里看到的「和外框错位」就是这个。
+
+          改成每组自带标签与边框之后有两个好处：
+            · 换行时每行本身是一枚完整的胶囊，不存在参差
+            · 「全部」出现两次的歧义也解决了——现在写清了哪个是朝代、哪个是体裁 */}
       <div className="chipbar">
-        <div className="chips" id="chipsDynasty" role="group" aria-label="按朝代筛选">
-          {DYNASTIES.filter(function (d) {
-            /* 先唐这一格只在真收了先唐作品时才出现 */
-            return d.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
-          }).map(function (d) {
-            const n = d.val === "全部" ? undefined : (ERA_COUNT[d.val] || 0);
-            return (
-              <button key={d.val} type="button" data-val={d.val}
-                title={n === undefined ? "不限朝代" : d.label + " " + n + " 首"}
-                aria-pressed={dynasty === d.val}
-                onClick={() => toggleDynasty(d.val)}>
-                {d.label}
-              </button>
-            );
-          })}
+        <div className="chip-group" role="group" aria-label="按朝代筛选">
+          <span className="cg-label" aria-hidden="true">朝代</span>
+          <div className="chips" id="chipsDynasty">
+            {DYNASTIES.filter(function (d) {
+              /* 先唐这一格只在真收了先唐作品时才出现 */
+              return d.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
+            }).map(function (d) {
+              const n = d.val === "全部" ? undefined : (ERA_COUNT[d.val] || 0);
+              return (
+                <button key={d.val} type="button" data-val={d.val}
+                  title={n === undefined ? "不限朝代" : d.label + " " + n + " 首"}
+                  aria-pressed={dynasty === d.val}
+                  onClick={() => toggleDynasty(d.val)}>
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <span className="chip-sep" aria-hidden="true" />
-        <div className="chips" id="chipsForm" role="group" aria-label="按体裁筛选">
-          {FORMS.map(function (f) {
-            return (
-              <button key={f.val} type="button" data-val={f.val}
-                aria-pressed={form === f.val}
-                onClick={() => toggleForm(f.val)}>
-                {f.label}
-              </button>
-            );
-          })}
+
+        <div className="chip-group" role="group" aria-label="按体裁筛选">
+          <span className="cg-label" aria-hidden="true">体裁</span>
+          <div className="chips" id="chipsForm">
+            {FORMS.map(function (f) {
+              return (
+                <button key={f.val} type="button" data-val={f.val}
+                  aria-pressed={form === f.val}
+                  onClick={() => toggleForm(f.val)}>
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <span className="chip-fill" />
+
         {/* 命令面板的可见入口：⌘K 这种快捷键，不摆出来就没人会去试 */}
         <button id="paletteBtn" className="round-btn" type="button"
           aria-label="命令面板" title="命令面板（⌘K / Ctrl+K）：搜诗词、诗人、地标、主题"

@@ -172,15 +172,21 @@ export const ATMOSPHERE = (function () {
       }
     }
 
-    /* 飘落花瓣（设计稿的主视觉动效） */
-    var petalCols = ["#e8b3a4", "#dfa08f", "#e9c79a", "#d98d7e", "#f0d6ae"];
+    /* 落英：**降低存在感，但不删**。
+       用户反馈花瓣与地名、标记在色彩和位置上互相干扰——
+       原来 46 片、透明度 0.5–0.9，压在密集标记区上确实吵。
+       现在数量降到 30、透明度降到 0.32–0.6，颜色也往纸色靠一档
+       （原来那组偏粉，等于色板之外多出第 4 个色相）。
+       保留是因为它是这张「活的画卷」里唯一持续在动的东西——
+       全删掉，页面会从「活的」变成「静的」。 */
+    var petalCols = ["#dfbdb0", "#d6a898", "#e3cbb0", "#cf9f92", "#e8d8c2"];
     var petalT = petalCols.map(function (col) { return petalTexture(64, col); });
-    var petalN = Math.round((light ? 46 : 34) * n);
+    var petalN = Math.round((light ? 30 : 24) * n);
     for (i = 0; i < petalN; i++) {
       var pw = rnd(light ? 8 : 9, light ? 17 : 20);
       s = sprite(petalT[i % petalT.length], {
         x: rnd(-halfW, halfW), y: rnd(-halfH, halfH * 1.2),
-        z: rnd(-40, 150), w: pw, h: pw, opacity: rnd(0.5, 0.9), rot: rnd(0, 6.28),
+        z: rnd(-40, 150), w: pw, h: pw, opacity: rnd(0.32, 0.6), rot: rnd(0, 6.28),
       });
       items.push({
         sprite: s, kind: "petal", vy: rnd(14, 34), sway: rnd(10, 30),

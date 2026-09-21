@@ -72,9 +72,9 @@ export default function BottomBar() {
         <b id="statPlaces">{placesShown}</b><i>地</i>
       </span>
 
-      <button id="shuffleBtn" className="shuffle" type="button" title="随机读一首" onClick={pickRandom}>
+      <button id="shuffleBtn" className="shuffle" type="button" title="随机读一首（在当前筛选里偶遇）" onClick={pickRandom}>
         <IconShuffle />
-        <span>换一批</span>
+        <span>随机一首</span>
       </button>
     </div>
   );

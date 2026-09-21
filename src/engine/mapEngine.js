@@ -314,8 +314,8 @@ export function createEngine(mapEl) {
   }
   if (GEO_EXTRAS.wall) {
     const wpts = smoothPath(GEO_EXTRAS.wall.pts, 6);
-    L.polyline(wpts, { pane: "wall", color: "#d08e68", weight: 5, opacity: 0.22, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
-    L.polyline(wpts, { pane: "wall", color: "#af4d38", weight: 2.4, opacity: 0.92, dashArray: "2 5", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(wpts, { pane: "wall", color: "#c2a878", weight: 5, opacity: 0.2, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(wpts, { pane: "wall", color: "#8f7748", weight: 2.4, opacity: 0.9, dashArray: "2 5", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
 
   /* ---- 地名：山河名 + 省名 ---- */
@@ -545,6 +545,35 @@ export function createEngine(mapEl) {
     el.style.opacity = v;
   }
 
+  /* 去糊：从「只降透明度」改成「缩小 + 降透明度」两个维度一起退。
+     ------------------------------------------------------------
+     用户指出的问题：华东华中挤成一片，珠子互相压住、也盖住地名。
+     原来只把相撞的珠子压到 .52 透明度——但**只变淡**会让密处糊成
+     一片灰点，位置并没有让出来；用户也明确说过不希望靠降透明度解决
+     （那会一起削弱本来就浅的地图信息）。缩一档再淡一档，密处才真透气。 */
+  function setRecede(el, on) {
+    if (!el || el.__recede === on) return;
+    el.__recede = on;
+    el.classList.toggle("recede", on);
+  }
+
+  /* 悬停某一颗时，其余珠子一并退让。
+     「我现在选中了什么」这个问题，答案得靠对比给出来，
+     不能只让被指到的那颗自己放大。 */
+  let hoverDot = null;
+  const hoverHost = map.getContainer();
+  hoverHost.addEventListener("pointerover", function (e) {
+    const dot = e.target && e.target.closest ? e.target.closest(".dot-wrap") : null;
+    if (dot === hoverDot) return;
+    hoverDot = dot;
+    queueLayout();
+  });
+  hoverHost.addEventListener("pointerleave", function () {
+    if (!hoverDot) return;
+    hoverDot = null;
+    queueLayout();
+  });
+
   function layoutLabels() {
     const size = map.getSize();
     const zoom = map.getZoom();
@@ -556,7 +585,11 @@ export function createEngine(mapEl) {
       if (!el) return;
       const pt = map.latLngToContainerPoint([n.lat, n.lng]);
       if (pt.x < -80 || pt.y < -60 || pt.x > size.x + 80 || pt.y > size.y + 80) return;
-      items.push({ n: n, el: el, x: pt.x, y: pt.y });
+      /* el 是 Leaflet 的 marker 宿主（.leaflet-marker-icon），
+         dot 才是里面那枚 .dot-wrap。去糊的类必须打在 **dot** 上——
+         打在宿主上时 CSS 的 `.dot-wrap.recede` 永远匹配不到（踩过一次：
+         实测 receded 一直是 0，密处根本没退让）。 */
+      items.push({ n: n, el: el, dot: dotElOf(n), x: pt.x, y: pt.y });
     });
 
     items.sort(function (a, b) { return b.n.poems.length - a.n.poems.length; });
@@ -576,7 +609,9 @@ export function createEngine(mapEl) {
         if (!(box.x2 < b.x1 || b.x2 < box.x1 || box.y2 < b.y1 || b.y2 < box.y1)) clash = true;
       }
       if (!clash) dotBoxes.push(box);
-      o.recede = clash && !o.n.isActive;
+      /* 相撞就退，另外**悬停时其余全退**——
+         被指到的那颗于是从一片退让里凸显出来。 */
+      o.recede = (clash || (hoverDot && o.dot !== hoverDot)) && !o.n.isActive;
     });
 
     const boxes = [];
@@ -584,7 +619,7 @@ export function createEngine(mapEl) {
     items.forEach(function (o) {
       /* 珠子的疏密先落定：放在 label 早退之前，
          免得某个地标没有名签时珠子透明度就漏更新了。 */
-      setOp(o.el, o.recede ? ".52" : "1");
+      setRecede(o.dot, o.recede);
       const label = nameElOf(o.n);
       if (!label) return;
       let on;
