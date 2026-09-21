@@ -100,23 +100,6 @@ export function createEngine(mapEl) {
     maxBoundsViscosity: 0.7,
     center: [35.5, 105],
     zoom: 4.3,
-    /* 缩放性能（实测得来，不是猜的）
-       ------------------------------------------------------------
-       用 tools/probes/zoom-ablate.js 做消融，缩放时逐帧记 rAF 间隔：
-
-         基线（159 条矢量线 / 12361 个点 + 215 个地标）
-              p95 32.9ms   max 305.8ms
-         摘掉矢量层 → p95 21.6ms   max  39.1ms   （那个 305ms 的尖峰没了）
-         摘掉地标   → p95  7.8ms   max 112.7ms
-
-       也就是**两个独立的成本**：尖峰来自矢量重投影，持续偏高来自地标。
-
-       地标这边：Leaflet 默认在缩放动画里逐个动每个 marker
-       （markerZoomAnimation）。215 个地标逐帧改 transform，p95 就压在 30ms。
-       关掉它，地标在缩放期间跟着 pane 一起被 CSS 缩放（不再逐个算），
-       缩放结束时归位——视觉上几乎看不出差别，但每帧省下 200 多次写入。
-       ⚠️ 不能用 zoomAnimation: false 一刀切：那会连平滑缩放一起失去。 */
-    markerZoomAnimation: false,
   });
   mapRef.map = map;
   window.__map = map;                     // 诊断钩子：tools/qa-*.js 仍可直接取用
@@ -138,16 +121,7 @@ export function createEngine(mapEl) {
 
   /* 省区轮廓抽稀：缩放代价与点数成正比，抽稀后缩放明显更跟手 */
   const rawProvPts = countPts(provinces0);
-  /* 省区抽稀容差 0.05 → 0.12。
-     ------------------------------------------------------------
-     省区只是**晕染色块**，不承担边界精度——0.05 度（约 5.5km）的容差
-     在国境视野下是看不出来的，却留下了 34 个省共 5740 个点，
-     是缩放尖峰的主要来源（矢量层合计 12361 个点，占七成）。
-     放宽到 0.12 度（约 13km）后点数大约减半，而 800px 宽的地图上
-     1 度约合 12px，也就是容差从 0.6px 放宽到 1.4px——仍然在亚像素到
-     一像素之间，眼睛看不出折线变直。
-     真要精确的边界（国境线、长城、水系）走的是另外的图层，不受影响。 */
-  const provinces = provinces0.map(function (f) { return simplifyProvince(f, 0.12); });
+  const provinces = provinces0.map(function (f) { return simplifyProvince(f, 0.05); });
   const keptPts = countPts(provinces);
   window.__geoStats = {
     rawPoints: rawProvPts,
@@ -277,25 +251,12 @@ export function createEngine(mapEl) {
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
-  /* 脊线按**色调分组**合并：原来每个 tone 一条、共 70 个 SVG 图元，
-     合并后只剩 4 条多段线（tone 有几种就几条）。
-     ------------------------------------------------------------
-     和上面「皴线合并成一条多段线」是同一个道理，只是脊线有四种墨色，
-     不能全并成一条——按 tone 分组即可，视觉完全一致（同色同粗细同透明度），
-     但缩放时少 66 次 <path> 的 d 属性重写。
-     实测缩放尖峰与「视口内有多少个 path 需要重投影」直接相关。 */
-  (function mergeRidgesByTone() {
-    const byTone = {};
-    (T.ridges || []).forEach(function (rd) {
-      (byTone[rd.tone] = byTone[rd.tone] || []).push(rd.latlngs);
-    });
-    Object.keys(byTone).forEach(function (tone) {
-      L.polyline(byTone[tone], {
-        pane: "terrain", color: RIDGE_INK[tone], weight: 1.1, opacity: 0.42,
-        lineCap: "round", lineJoin: "round", interactive: false,
-      }).addTo(map);
-    });
-  })();
+  (T.ridges || []).forEach(function (rd) {
+    L.polyline(rd.latlngs, {
+      pane: "terrain", color: RIDGE_INK[rd.tone], weight: 1.1, opacity: 0.42,
+      lineCap: "round", lineJoin: "round", interactive: false,
+    }).addTo(map);
+  });
   /* 峰脊受光的一条细白线：与墨线一夹，山脊就立起来了。
      别太亮——纯白会跟远山的浅色叠成「雪线」。 */
   if ((T.crests || []).length) {
@@ -343,16 +304,12 @@ export function createEngine(mapEl) {
 
   /* ---- 水系 / 运河 / 长城 ---- */
   (GEO_EXTRAS.rivers || []).forEach(function (r) {
-    /* 脊线抽稀：smoothPath 是 Catmull-Rom 样条，seg 是**每个输入段插几个点**——
-       seg=7 意味着点数乘七，最长的一条脊线因此有 825 个点，是缩放时
-       SVG 重投影尖峰里最大的一笔。降到 4（点数少四成）：
-       线宽只有 1.1px、又是画在山体上的装饰纹，4 段插值肉眼与 7 段无异。 */
-    const pts = smoothPath(r.pts, 4);
+    const pts = smoothPath(r.pts, 7);
     L.polyline(pts, { pane: "hydro", color: "#93b4c5", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
     L.polyline(pts, { pane: "hydro", color: "#659db2", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   });
   if (GEO_EXTRAS.canal) {
-    const cpts = smoothPath(GEO_EXTRAS.canal.pts, 5);
+    const cpts = smoothPath(GEO_EXTRAS.canal.pts, 7);
     L.polyline(cpts, { pane: "hydro", color: "#a0bfc8", weight: 1.1, opacity: 0.6, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
   if (GEO_EXTRAS.wall) {
@@ -496,7 +453,6 @@ export function createEngine(mapEl) {
 
   /** 让整组地标重新只留一个 Tab 位；prefer 给索引就挪到那一格 */
   function syncRove(prefer) {
-    if (window.__mk) window.__mk.rove++;
     const list = markerNodes();
     list.forEach(function (o) { o.dot.tabIndex = -1; });
     if (!list.length) { roveEl = null; return list; }
@@ -563,14 +519,6 @@ export function createEngine(mapEl) {
     requestAnimationFrame(function () { layoutQueued = false; layoutLabels(); });
   }
 
-  /* 缩放/平移的性能计数（诊断用，不参与逻辑）。
-     要回答「卡在哪」必须知道每帧到底跑了几次 layoutLabels——
-     它里面有 155 次三角换算、一次排序、一轮 O(n²) 碰撞检测与成百次 DOM 写。
-     光看帧率只能知道「卡」，看不出「卡在谁身上」。 */
-  if (typeof window !== "undefined") {
-    window.__mk = window.__mk || { layout: 0, layoutMs: 0, layoutMax: 0, rove: 0, syncVis: 0 };
-  }
-
   /* 地名签的引用缓存在地标对象上：省掉「每帧 × 67 个地标」的 querySelector。
      setIcon 之后元素会被替换，用 isConnected 兜住，不必手工失效。 */
   function nameElOf(n) {
@@ -627,8 +575,6 @@ export function createEngine(mapEl) {
   });
 
   function layoutLabels() {
-    const __t0 = window.__mk ? performance.now() : 0;
-    if (window.__mk) window.__mk.layout++;
     const size = map.getSize();
     const zoom = map.getZoom();
     const maxLabels = zoom < 4.9 ? 12 : zoom < 5.6 ? 22 : 60;
@@ -724,12 +670,6 @@ export function createEngine(mapEl) {
       if (on) mtnPlaced.push(box);
       setOp(span, on ? "1" : "0");
     });
-
-    if (window.__mk) {
-      const dt = performance.now() - __t0;
-      window.__mk.layoutMs += dt;
-      if (dt > window.__mk.layoutMax) window.__mk.layoutMax = dt;
-    }
   }
   window.__layout = layoutLabels;
 

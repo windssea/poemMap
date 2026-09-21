@@ -1,31 +1,20 @@
 /* ============================================================
-   右上：搜索 · 筛选条 · 更多菜单
+   右上：搜索 · 更多菜单（筛选已移到命令面板）
    ============================================================ */
 import { useEffect, useRef, useState } from "react";
 import {
-  useStore, setQuery, toggleDynasty, toggleForm,
+  useStore, setQuery,
   toggleMenu, closeMenu, openPanel, openPalette, openHelp,
 } from "../store.js";
 import { selectFiltered } from "../data/select.js";
 import { getState, showToast } from "../store.js";
 import { resetView, toggleMotion, about, focusSchool } from "../actions.js";
-import { AUTHOR_COUNT, ERA_COUNT, POEMS } from "../data/index.js";
-import { ERAS } from "../data/eras.js";
+import { AUTHOR_COUNT, POEMS } from "../data/index.js";
 import { schoolCount } from "../data/schools.js";
 import { IconClose, IconMenu, IconSearch } from "./icons.jsx";
 
-/* 朝代筛选按「时代组」给：先唐一个按钮管住先秦/汉/魏晋/南北朝，
-   免得四个小朝代把唐诗宋词挤下去。顺序与时间轴一致。 */
-const DYNASTIES = ERAS;
-const FORMS = [
-  { val: "全部", label: "全部" },
-  { val: "诗", label: "诗" },
-  { val: "词", label: "词" },
-];
-
 export function Tools() {
-  const dynasty = useStore("dynasty");
-  const form = useStore("form");
+
   const q = useStore("q");
   const menuOpen = useStore("menuOpen");
 
@@ -89,52 +78,15 @@ export function Tools() {
         </svg>
       </div>
 
-      {/* 筛选条：**每组一枚自己的胶囊**，不是一个装着两组的大胶囊。
+      {/* 筛选条已按要求移除，右上只留搜索框。
           ------------------------------------------------------------
-          原来是一个 .chipbar 胶囊里 flex-wrap，窄屏一换行就露馅：
-          第一行是 4 个朝代 + 分隔线，第二行是 3 个体裁 + 2 个圆钮，
-          两行左对齐但宽度不同 → 右缘参差，而 999px 圆角套在两行上
-          又变成一个怪异的椭圆。用户截图里看到的「和外框错位」就是这个。
-
-          改成每组自带标签与边框之后有两个好处：
-            · 换行时每行本身是一枚完整的胶囊，不存在参差
-            · 「全部」出现两次的歧义也解决了——现在写清了哪个是朝代、哪个是体裁 */}
+          朝代 / 体裁的筛选并没有消失，只是不再占据右上角：
+          命令面板（⌘K 或 ⌘ 钮）里仍有「朝代」「体裁」两组动作，
+          左下 dock 的时代统计也照旧反映当前筛选。
+          这样右上角只剩「搜索」一件事，顶栏的层级反而清楚了。
+          #chipsDynasty / #chipsForm 这两个 id 由探针与 qa 脚本使用，
+          现在由 Palette 渲染，见 components/Palette.jsx。 */}
       <div className="chipbar">
-        <div className="chip-group" role="group" aria-label="按朝代筛选">
-          <span className="cg-label" aria-hidden="true">朝代</span>
-          <div className="chips" id="chipsDynasty">
-            {DYNASTIES.filter(function (d) {
-              /* 先唐这一格只在真收了先唐作品时才出现 */
-              return d.val !== "先唐" || (ERA_COUNT.先唐 || 0) > 0;
-            }).map(function (d) {
-              const n = d.val === "全部" ? undefined : (ERA_COUNT[d.val] || 0);
-              return (
-                <button key={d.val} type="button" data-val={d.val}
-                  title={n === undefined ? "不限朝代" : d.label + " " + n + " 首"}
-                  aria-pressed={dynasty === d.val}
-                  onClick={() => toggleDynasty(d.val)}>
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="chip-group" role="group" aria-label="按体裁筛选">
-          <span className="cg-label" aria-hidden="true">体裁</span>
-          <div className="chips" id="chipsForm">
-            {FORMS.map(function (f) {
-              return (
-                <button key={f.val} type="button" data-val={f.val}
-                  aria-pressed={form === f.val}
-                  onClick={() => toggleForm(f.val)}>
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* 命令面板的可见入口：⌘K 这种快捷键，不摆出来就没人会去试 */}
         <button id="paletteBtn" className="round-btn" type="button"
           aria-label="命令面板" title="命令面板（⌘K / Ctrl+K）：搜诗词、诗人、地标、主题"

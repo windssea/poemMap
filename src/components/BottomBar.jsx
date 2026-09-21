@@ -11,8 +11,7 @@ import { visiblePlaceIds } from "../data/select.js";
 import { ERAS, inEra } from "../data/eras.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 import { MOTION } from "../engine/motion.js";
-import { pickRandom } from "../actions.js";
-import { IconList, IconShuffle } from "./icons.jsx";
+import { IconList } from "./icons.jsx";
 
 /* 展示顺序固定为 先唐 → 唐 → 宋，与时间轴一致 */
 const SHOWN = ERAS.filter(function (e) { return e.val !== "全部"; });
@@ -71,11 +70,6 @@ export default function BottomBar() {
         <b id="statPoems">{poemsShown}</b><i>首</i>
         <b id="statPlaces">{placesShown}</b><i>地</i>
       </span>
-
-      <button id="shuffleBtn" className="shuffle" type="button" title="随机读一首（在当前筛选里偶遇）" onClick={pickRandom}>
-        <IconShuffle />
-        <span>随机一首</span>
-      </button>
     </div>
   );
 }
