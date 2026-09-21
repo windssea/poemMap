@@ -177,6 +177,15 @@ export default function Detail() {
                 </div>
               )}
 
+              {/* 背景故事：讲这首诗**怎么来的**，与下面的「诗意简析」
+                  （讲它说了什么）分工不同。常驻显示，不藏在注释里——
+                  一段来龙去脉比一句「表达了……」更容易让人记住这首诗。
+                  没有 story 的条目回落到 place.origin，不会开天窗。 */}
+              <section className="sec sec-story">
+                <h3>背景故事</h3>
+                <p id="dStory">{p.story || p.place.origin}</p>
+              </section>
+
               <section className="sec">
                 <h3>诗意简析</h3>
                 <p id="dTr">{p.tr}</p>
@@ -197,10 +206,8 @@ export default function Detail() {
                   <h3>赏析</h3>
                   <p id="dAppr">{p.appr}</p>
                 </section>
-                <section className="sec" id="dOriginSec" hidden={!p.place.origin}>
-                  <h3>写作背景</h3>
-                  <p id="dOrigin">{p.place.origin}</p>
-                </section>
+                {/* 「写作背景」这一节已经并进上面的「背景故事」，
+                    不再重复列一次（原来它藏在注释里，很少有人翻到）。 */}
               </div>
 
               <section className="sec sec-author">

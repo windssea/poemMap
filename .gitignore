@@ -15,3 +15,7 @@ shots/
 # tools/_new/ 下其余 *.json 是补编的原始输入（apply-new-poems.js 读它们），要提交。
 tools/_new/recovered.json
 
+# 背景故事的「切分输入」：由 tools/make-story-shards.js 从正册现算，
+# 数据一变就过期。真正要留的是写手产出的 story-*.json。
+tools/_new/_story-in-*.json
+

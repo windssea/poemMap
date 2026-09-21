@@ -1553,6 +1553,39 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: 2px;
 }
 .sec p { font-size: 14px; line-height: 1.95; letter-spacing: .04em; color: #4a4438; }
+
+/* ── 背景故事 ──────────────────────────────────────────
+   与「诗意简析」（讲这首诗**说了什么**）分工不同：这里讲它**怎么来的**。
+   给一块浅色底 + 一道朱红细边，读的人一眼看得出「这是另一类内容」，
+   不会和正文赏析混作一段。 */
+.sec-story {
+  max-width: 560px;
+  margin: 26px auto 0;
+  padding: 15px 18px 16px;
+  background: linear-gradient(180deg, rgba(195, 166, 103, .12), rgba(195, 166, 103, .055));
+  border: 1px solid rgba(195, 166, 103, .3);
+  border-radius: 10px;
+}
+/* 覆盖 .sec h3 的「居中 + 收窄到文字宽」：这一节的标题靠左，
+   与它下面那段叙述同一轴，读起来才是一段完整的话。 */
+.sec-story h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 9px;
+  padding-left: 0;
+  text-align: left;
+}
+.sec-story h3::before { position: static; margin-top: 0; flex: none; }
+.sec-story p {
+  max-width: none;
+  font-size: 13.5px;
+  line-height: 2.05;
+  letter-spacing: .035em;
+  color: #48422f;
+}
+/* 落款前留白要够：故事块自带底色，紧贴着落款会显得挤 */
+.sec-story + .sec { margin-top: 28px; }
 /* 抽屉宽度由「诗」决定，不被长段落撑满；正文块在内容列里居中，读起来不散 */
 #detail .sec p,
 #detail .d-notes,
