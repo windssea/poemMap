@@ -79,7 +79,13 @@ async function main() {
   const outPng = isEval ? null : mode;
   if (!url) { console.error("用法: node tools/cdp.js <url> <png|--eval> [waitMs]"); process.exit(2); }
 
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "cdp-profile-"));
+  /* CDP_PROFILE=<目录>：用固定的用户目录，而不是每次新建临时目录。
+     测 Service Worker 必须这样——SW 与 Cache Storage 都存在用户目录里，
+     每次换目录等于每次都从零开始，永远验不到「二次访问」。
+     ⚠️ 用完要自己删，它会留缓存文件。 */
+  const profile = process.env.CDP_PROFILE
+    ? (fs.mkdirSync(process.env.CDP_PROFILE, { recursive: true }), process.env.CDP_PROFILE)
+    : fs.mkdtempSync(path.join(os.tmpdir(), "cdp-profile-"));
   const chrome = spawn(CHROME, [
     "--headless=new",
     `--remote-debugging-port=${PORT}`,
@@ -110,6 +116,13 @@ async function main() {
     await cdp.send("Runtime.enable");
     await cdp.send("Log.enable");
     await cdp.send("Network.enable");
+    /* CDP_OFFLINE=1：断网。用来验「Service Worker 的缓存真的能顶住断网」——
+       这是「本地缓存」里最该被证明的一条，光看缓存里有东西不算数。 */
+    if (process.env.CDP_OFFLINE) {
+      await cdp.send("Network.emulateNetworkConditions", {
+        offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0,
+      });
+    }
 
     // 可用环境变量模拟无障碍与移动端
     if (process.env.CDP_REDUCED) {

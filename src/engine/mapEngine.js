@@ -9,6 +9,9 @@
    图层次序即画法：省区底色 → 山体 → 水系 → 长城 → 国境 → 地名
    ============================================================ */
 import L from "leaflet";
+/* 有副作用：给球面墨卡托投影加一层按经纬度的记忆。
+   必须在地图创建**之前** import，否则第一批投影会走原函数。 */
+import "./geoCache.js";
 import { CHINA_GEO, GEO_EXTRAS } from "../data/index.js";
 import { PLACES, PLACE_BY_ID } from "../data/places.js";
 import { selectFiltered, visiblePlaceIds } from "../data/select.js";
