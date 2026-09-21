@@ -34,7 +34,6 @@ import Help from "./components/Help.jsx";
 import Toast from "./components/Toast.jsx";
 import { Compass, SideVerse, Zoomer } from "./components/Chrome.jsx";
 import { MapCanvas, Paint, Mount } from "./components/Paint.jsx";
-import Legend from "./components/Legend.jsx";
 
 /* 深链解析：#/p/<id> → 把地图挪到该诗所在的地标，并打开详情抽屉。
    初次加载与后续 hashchange 共用一份逻辑。 */
@@ -247,7 +246,6 @@ export default function App() {
         <Card />
         <BottomBar />
         <SideVerse />
-        <Legend />
         <Compass />
         <Zoomer />
       </div>
