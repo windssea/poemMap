@@ -207,6 +207,34 @@ async function main() {
       }
     }
 
+    // CDP_FONTS=<css选择器>：查某个元素**实际**用的是哪个字体。
+    // JS 没有标准 API 能拿到「已使用的字体」——document.fonts 只列已加载的
+    // webfont，而 canvas 量宽度对中文字体没用（汉字都是全角，宽度一样，
+    // 实测十个候选字体量出来全是 91px）。只有 CDP 的
+    // CSS.getPlatformFontsForNode 能给权威答案。
+    if (process.env.CDP_FONTS) {
+      const sel = process.env.CDP_FONTS;
+      await cdp.send("DOM.enable");
+      await cdp.send("CSS.enable");
+      const doc = await cdp.send("DOM.getDocument", { depth: 0 });
+      const found = await cdp.send("DOM.querySelectorAll", { nodeId: doc.root.nodeId, selector: sel });
+      const rows = [];
+      for (const nid of (found.nodeIds || []).slice(0, 8)) {
+        const r = await cdp.send("CSS.getPlatformFontsForNode", { nodeId: nid });
+        const el = await cdp.send("DOM.describeNode", { nodeId: nid });
+        const a = el.node.attributes || [];
+        let cls = "", txt = el.node.nodeValue || "";
+        for (let i = 0; i < a.length; i += 2) if (a[i] === "class") cls = "." + a[i + 1].split(" ")[0];
+        rows.push({
+          node: (el.node.localName || "") + cls,
+          fonts: (r.fonts || []).map((f) => f.familyName + " ×" + f.glyphCount + " 字形"),
+        });
+      }
+      console.log(JSON.stringify({ selector: sel, matched: (found.nodeIds || []).length, rows }, null, 2));
+      await cdp.send("Browser.close").catch(() => {});
+      return;
+    }
+
     // CDP_TRACE=1：给 --eval 的那段脚本套一层性能跟踪，回报光栅 / 合成 / 布局耗时
     if (isEval && process.env.CDP_TRACE) {
       await cdp.send("Tracing.start", {
