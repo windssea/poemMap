@@ -13,6 +13,7 @@ import { placePoemList } from "../engine/anchor.js";
 import { MOTION } from "../engine/motion.js";
 import { choosePoem } from "../actions.js";
 import { getEngine } from "../engine/mapEngine.js";
+import { IconPin } from "./icons.jsx";
 
 export default function PoemList() {
   const placeId = useStore("poemListPlaceId");
@@ -50,7 +51,7 @@ export default function PoemList() {
       {node && (
         <>
           <div className="pl-head">
-            {placeLabel(node)}
+            <span className="pl-where"><IconPin />{placeLabel(node)}</span>
             <span className="pl-n">{node.poems.length} 首</span>
           </div>
           {node.poems.map(function (p) {

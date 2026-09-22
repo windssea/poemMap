@@ -70,8 +70,10 @@ function shade(hex, amt) {
   return "#" + c.map(function (v) { return ("0" + v.toString(16)).slice(-2); }).join("");
 }
 
-/* 山脊勾线（羽化与柔光靠几何，不用 CSS blur） */
-const RIDGE_INK = ["#3a6076", "#3f6579", "#44697c", "#386073"];
+/* 山脊勾线（羽化与柔光靠几何，不用 CSS blur）。
+   下标与 terrain.js 的 TONES 对齐：0–3 普通山系，4–7 重点山体（更深的石青）。 */
+const RIDGE_INK = ["#3a6076", "#3f6579", "#44697c", "#386073",
+                   "#2b5265", "#2f5568", "#264d60", "#2d5366"];
 /* 山脚收进的「雾色」：接近省区底色，山脚由此没入地面/云气 */
 const RIDGE_MIST = "#ece2c4";
 /* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释）。
