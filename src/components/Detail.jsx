@@ -156,11 +156,23 @@ export default function Detail() {
 
               <p id="dPrologue" className="d-prologue" hidden={!p.prologue}>{p.prologue}</p>
 
+              {/* ⚠️ 两层，缺一不可：外层当**滚动容器**（width 100%），
+                  内层当**内容**（width: max-content）。
+                  原来只有一层，且那一层同时是 `width: max-content` ——
+                  Chromium 于是认为它"尺寸本来就该等于内容宽"，
+                  scrollWidth 虽然报 4074，**可滚动范围却是 0**：
+                  scrollLeft 无论设多少都停在 0，滚轮 deltaX 也没反应。
+                  实测 88 句的《琵琶行》末句停在 left=-2682，屏幕外，
+                  整首诗的后三分之二根本读不到（方案 §3 的头号红线）。
+                  拆开之后 scrollLeft 正常工作 —— 方案 §3 的参考布局
+                  给的正是这个两层结构。 */}
               <div id="dPoem" ref={poemRef}
                 className={"d-poem" + (scrollable ? " scrollable" : "")}>
-                {p.lines.map(function (l, i) {
-                  return <span className="line" key={i}>{l}</span>;
-                })}
+                <div className="d-poem-inner">
+                  {p.lines.map(function (l, i) {
+                    return <span className="line" key={i}>{l}</span>;
+                  })}
+                </div>
               </div>
               {scrollable && (
                 <div className="d-scrollbar" aria-hidden="true">

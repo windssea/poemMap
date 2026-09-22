@@ -1760,10 +1760,46 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
 }
 
+/* ── 竖排诗文：**两层**，滚动容器与内容分开 ──────────────────
+   #dPoem        = 滚动容器：宽度交给父级，负责裁切与滚动
+   .d-poem-inner = 内容本体：竖排 + width: max-content，列数撑开多宽就多宽
+
+   原来只有一层，那一层同时写着 `width: max-content; max-width: 100%;
+   overflow-x: auto` —— 于是它"自己就是内容的尺寸"，Chromium 判定
+   容器内没有可滚动的溢出：scrollWidth 报 4074、clientWidth 报 1171，
+   而 scrollLeft 设 -2903 / +2903 / scrollBy / wheel deltaX 全部停在 0
+   （tools/probes/scrollsweep.js 逐档扫过，首句位置一动不动）。
+   后果：88 句的《琵琶行》末句停在 left=-2682，**屏幕外**，读不到末尾。
+
+   拆成两层之后 scrollLeft 正常（同一条探针：-200 稳稳生效）。
+   ⚠️ 别把 writing-mode / width:max-content 挪回外层 —— 一挪回去就复现。 */
 .d-poem {
   margin: 22px auto 20px;
+  /* ── 滚动容器：**普通横向 + direction: rtl** ──────────────────
+     ⚠️ 不能给它 writing-mode: vertical-rl。实测（tools/probes/scrollvariants.js
+     四种组合逐档扫 scrollLeft）：
+       A 容器 vertical-rl（原来的写法）→ scrollLeft 恒为 0，content 一动不动，
+         末句停在 left=-2666，屏幕外 —— 长诗的后三分之二根本读不到
+       B 容器普通横向            → 能滚，但 scrollLeft=0 显示的是诗的**末尾**，读序反了
+       C 容器普通横向 + rtl      → 能滚（0 → -2902），且 scrollLeft=0 正是诗的开头 ✓
+     原因是 Chromium 不会为 vertical-rl 容器的**块轴溢出**给出可滚动范围；
+     换成横向容器 + rtl，溢出方向与竖排的"右起"一致，滚动范围正常，
+     而且 scrollLeft 向负走 —— 与下面那道左缘渐隐、以及 Detail.jsx 里
+     progress = |scrollLeft| / 溢出 的算法方向完全一致。 */
+  direction: rtl;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 16px 6px 16px;    /* 上 16 收纳入场位移，左右 6 收纳倾斜，下留一点余量给滚动条 */
+}
+.d-poem-inner {
   writing-mode: vertical-rl;
   text-orientation: upright;
+  /* ⚠️ 必须把 direction 拨回 ltr：外层为了滚动改成了 rtl，而它会**继承**下来 ——
+     在 vertical-rl 里 direction 决定的是**行内方向**，rtl 会让整首诗
+     从下往上排，字序整个倒过来。这一行是护栏，别删。 */
+  direction: ltr;
   font-family: var(--serif);
   /* 18px → 19px（方案 §5：竖排正文字号在 19–21px 附近校）。
      宋体的横画极细，18px 时笔画落在 1px 上下，一行竖排字读起来"轻"；
@@ -1776,14 +1812,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   line-height: 2.15;
   letter-spacing: 3px;
   color: var(--ink);
-  width: max-content;       /* 宽度＝诗句列数：诗越长抽屉越宽 */
-  max-width: 100%;
-  overflow-x: auto;
-  /* 竖向永不滚动：这一轴本来没有溢出。「诗句逐列落下」的位移与 ±2° 倾斜
-     会被内边距吸收，否则变换出的那一两像素会在诗栏里蹦出一条竖向滚动条
-     （短诗也会，且出现后诗栏还会被顶宽 10px——用户看到的「闪一下」。） */
-  overflow-y: hidden;
-  padding: 16px 6px 16px;    /* 上 16 收纳入场位移，左右 6 收纳倾斜，下留一点余量给滚动条 */
+  /* 宽度＝诗句列数：诗越长越宽，由外层 #dPoem 负责滚动。
+     短诗时它比容器窄，靠 auto 外边距居中（原来是外层自己居中）。 */
+  width: max-content;
+  margin: 0 auto;
 }
 .d-poem .line {
   position: relative;
