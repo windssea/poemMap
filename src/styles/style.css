@@ -36,10 +36,19 @@
      其它浮层（卡片、命令面板、菜单）不动——它们的底不是绢黄地图。 */
   --paper-detail: #f7f3e8;
 
-  /* ══ 文字 ══ 三级都过 AA，第四级只给图形 */
-  --ink:      #293f3b;   /* 主文字 · 墨青        9.75:1 on --paper */
-  --ink-2:    #3f5149;   /* 次级                  7.3:1 */
-  --ink-3:    #656f68;   /* 辅助  ← 方案原值 #748078 只有 3.57:1，压到 4.53:1 */
+  /* ══ 文字 ══ 三级都过 AA，第四级只给图形
+     ----------------------------------------------------------
+     三档在 2026-09-22 的第二轮方案里各压深一档（「更深的文字骨架」）：
+       主文字   #293f3b 9.75:1 → #263a35 10.48:1
+       次级     #3f5149 7.33:1 → #34463f  8.70:1
+       辅助     #656f68 4.53:1 → #59685f  5.10:1
+     三处都是**纯压深**（色相不动），只赚不赔：小字在绢本、暖绢白、
+     甚至压在山体上时都多出一档余量。
+     ⚠️ 方案同时给了「弱化说明 #747F74」= 3.62:1 —— 那条**没有采纳**，
+     12px 的字要 4.5:1，采了就低于它自己定的验收线。 */
+  --ink:      #263a35;   /* 主文字 · 墨青        10.48:1 on --paper */
+  --ink-2:    #34463f;   /* 次级                  8.70:1 */
+  --ink-3:    #59685f;   /* 辅助                  5.10:1 */
   --ink-gfx:  #8f9489;   /* **仅图形**：箭头、图标描边 */
 
   /* ══ 线 ══ 赭金灰系，比原来的冷灰暖 */
@@ -341,6 +350,13 @@ html.motion-off .p-crane { animation: none; }
   /* 珠径随缩放走：全国视野下点小而密（不糊成一片），
      放大后珠子放大、好点也好认。由 mapEngine 在缩放到档时切 body 上的类。 */
   --dot: 12px;
+  /* 名签与珠子之间的间距**必须落在整数上**。
+     原来写的是 calc(var(--dot) / 2 + 2px)：珠子 12/14px 时是整数，
+     但全国视野下 --dot 收到 9px，9/2+2 = 6.5px —— 名签于是在
+     transform 上下文里落在半像素上（实测 y+0.5），12px 的汉字被重采样一遍。
+     改成跟着 --dot 一起给的整数值，三档都是整数，间距只差半像素。 */
+  --dot-gap: 8px;              /* 常态：12/2+2 */
+  --dot-gap-on: 12px;          /* 选中/聚焦时名签抬起：12/2+6 */
   --dot-ring: rgba(86, 140, 120, .22);
 }
 /* 命中区补到 24×24（WCAG 2.5.8 AA 的下限）。
@@ -357,8 +373,8 @@ html.motion-off .p-crane { animation: none; }
 }
 /* 全国视野下江浙一带地标最密，珠子收到 9px 才不会糊成一片红；
    放大后再逐档回大，好点也好认。 */
-body.zoom-far  .dot-wrap { --dot: 9px; }
-body.zoom-near .dot-wrap { --dot: 14px; }
+body.zoom-far  .dot-wrap { --dot: 9px;  --dot-gap: 7px;  --dot-gap-on: 11px; }
+body.zoom-near .dot-wrap { --dot: 14px; --dot-gap: 9px;  --dot-gap-on: 13px; }
 
 /* 地标：一枚朱漆珠。
    三层做「精致」：内圈一道暗线收边（不是一团糊渐变）、
@@ -467,7 +483,7 @@ body.zoom-far .dot {
     0 3px 10px rgba(41, 63, 59, .5);
 }
 .dot-wrap:focus-visible .dot-name {
-  margin-top: calc(var(--dot) / 2 + 6px);
+  margin-top: var(--dot-gap-on);
   padding: 3px 10px;
   font-size: 13px;
   letter-spacing: 2px;
@@ -483,7 +499,7 @@ body.zoom-far .dot {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: calc(var(--dot) / 2 + 2px);
+  margin-top: var(--dot-gap);
   /* 地名用**黑体**，不用宋体。
      ------------------------------------------------------------
      这是「地标文字看着模糊」的真正原因。宋体（SimSun / Songti）的横画
@@ -507,13 +523,29 @@ body.zoom-far .dot {
   transition: opacity var(--t-state) ease;
 }
 body.zoom-far .dot-name { font-size: 12px; }
+/* 数量角标（「黄州 14」里那个 14）。
+   ------------------------------------------------------------
+   原来叠了三个减分项：10px + opacity .85 + 浅朱砂 #a94f3c。
+   实算压在同色系的绢黄上只剩 **3.18:1**，连 AA 都不够 ——
+   而它恰恰是「这里有几首」的唯一提示，是最该看清的一个数。
+   三处一起改（方案 §1.3 把「数量角标」单列为一级，给了 ≥11px 与 #9D4938）：
+     · opacity .85 → 去掉：半透明朱砂压在浅底上只会变灰
+     · #a94f3c → var(--seal-d)：压深一档，绢黄上 5.23:1，过 AA
+     · 10px → 11px：小字再抬一档，笔画才挂得住色
+   朱砂的语义没有扩大 —— 它仍然只出现在「这一处有几首」与当前选中上。
+
+   ⚠️ 方案给的 #9D4938 压在陆地绢黄上是 **4.47:1**，差 0.03 不到线；
+   改成复用已有的 --seal-d #8f4030（5.23:1），色相仍在朱砂一族里。
+   ⚠️ 地标若落在**青绿山体**上，角标的对比度只有 3.2:1（浅石绿上实测）。
+   这一条是**已知取舍**，不再压深：要压到 4.5:1 得用近乎黑褐的 #7a3020，
+   那就不再是朱砂了。撑住它的是 .dot-name 那圈纸色硬描边（角标继承同一套
+   text-shadow）—— 与地图上所有小字同一套机制，见 --label-halo 的说明。 */
 .dot-count {
-  font-size: 10px;
+  font-size: 11px;
   vertical-align: super;
-  color: var(--seal);
+  color: var(--seal-d);
   margin-left: 1.5px;
   letter-spacing: 0;
-  opacity: .85;
 }
 
 /* 选中：珠子亮一档、微微放大，名签换成朱红小匾 + 涟漪 */
@@ -529,7 +561,7 @@ body.zoom-far .dot-name { font-size: 12px; }
     0 2px 7px rgba(143, 64, 48, .36);
 }
 .dot-wrap.on .dot-name {
-  margin-top: calc(var(--dot) / 2 + 6px);
+  margin-top: var(--dot-gap-on);
   padding: 3px 10px;
   font-size: 13px;
   letter-spacing: 2px;
@@ -633,6 +665,11 @@ body.show-prov .prov-label span { opacity: 1; }
   transform: translate(-50%, -50%);
   font-family: var(--serif);
   font-size: 11px;
+  /* 行高写死成**偶数**：这三层地名都用 translate(-50%,-50%) 居中，
+     盒子高度是奇数时，-50% 就落在一个半像素上（山名实测 y+0.75），
+     11px 的宋体笔画本来就细，再被重采样一次就更"灰"。
+     16px 是偶数，且与原 normal 行高（约 15.4）只差半像素，看不出变化。 */
+  line-height: 16px;
   letter-spacing: 3px;
   text-indent: .24em;
   color: #6e7f74;
@@ -700,7 +737,7 @@ body.show-prov .prov-label span { opacity: 1; }
   /* 原来是 #656f68（实测 3.44:1，只够大字与图形，而这是 12.5px 的小字）。
      它虽然挂在 aria-hidden 的装饰容器里，但**看得见的字就是要读的字**，
      压到 AA 档 #656f68（4.60:1）。 */
-  color: #656f68;
+  color: var(--ink-3);
 }
 .cp-seal {
   width: 11px; height: 11px;
@@ -1293,7 +1330,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   padding: 3px 11px;
   font-size: 13px;
   letter-spacing: 1px;
-  color: #656f68;
+  color: var(--ink-3);
   border: 1px solid rgba(86, 140, 120, .62);
   border-radius: 999px;
 }
@@ -1313,7 +1350,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #3f5149;
+  color: var(--ink-2);
 }
 .c-sec h3::before {
   content: "";
@@ -1329,7 +1366,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 15px;
   line-height: 1.9;
   letter-spacing: 0px;
-  color: #3f5149;
+  color: var(--ink-2);
 }
 .c-link {
   display: inline-flex;
@@ -1390,7 +1427,11 @@ body.panel-open #bottomBar {
   transform: translateY(10px);
   pointer-events: none;
 }
-#bottomBar { transition: left var(--t-map) var(--ease), opacity var(--t-state) ease, transform .3s cubic-bezier(.22, 1, .28, 1); }
+/* visibility 也在过渡里：窄屏篇目栏推开时要把 dock 真正摘掉（见响应式段），
+   而只写 opacity: 0 的话它仍在 Tab 序里。0s 0s 是「显示」那一侧的取值——
+   一出现就要可见；「隐藏」那一侧在响应式段里把延迟改成 --t-state，
+   于是淡出跑完才真正摘掉，不会闪。 */
+#bottomBar { transition: left var(--t-map) var(--ease), opacity var(--t-state) ease, transform .3s cubic-bezier(.22, 1, .28, 1), visibility 0s 0s; }
 
 /* 篇目开关（藏在左下 dock 里，永远可点） */
 #sideToggle {
@@ -1513,7 +1554,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 14px;
   letter-spacing: 6px;
-  color: #656f68;              /* 同 .cp-line：3.44:1 → 4.60:1 */
+  color: var(--ink-3);              /* 同 .cp-line：3.44:1 → 4.60:1 */
   text-shadow: 0 1px 0 rgba(250, 247, 237, .8), 0 0 10px rgba(250, 246, 235, .85);
 }
 .sv-seal {
@@ -1868,7 +1909,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   background: var(--shan);
   border-radius: var(--r-seal);
 }
-.sec p { font-size: 14px; line-height: 1.95; letter-spacing: 1px; color: #3f5149; }
+.sec p { font-size: 14px; line-height: 1.95; letter-spacing: 1px; color: var(--ink-2); }
 
 /* ── 背景故事 ──────────────────────────────────────────
    与「诗意简析」（讲这首诗**说了什么**）分工不同：这里讲它**怎么来的**。
@@ -1904,7 +1945,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   line-height: 2.05;
   letter-spacing: 0px;
-  color: #3f5149;
+  color: var(--ink-2);
 }
 /* 落款前留白要够：故事块自带底色，紧贴着落款会显得挤 */
 .sec-story + .sec { margin-top: 28px; }
@@ -1921,7 +1962,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   letter-spacing: 1px;
   color: var(--seal);
 }
-.d-notes dd { margin: 2px 0 11px; font-size: 14px; line-height: 1.85; color: #3f5149; }
+.d-notes dd { margin: 2px 0 11px; font-size: 14px; line-height: 1.85; color: var(--ink-2); }
 .sec-author { padding-top: 22px; border-top: 1px solid var(--line-2); }
 .sec-author p b { color: var(--ink); }
 
@@ -2555,8 +2596,15 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 12px;
-  background: rgba(252, 248, 238, .55);
-  border: 1px solid rgba(255, 255, 255, .6);
+  /* 地点浮层的表面（方案 §2.1 的 --popup-surface）。
+     原来是 rgba(252,248,238,.55) —— 只挡住了 55%，
+     浮层里那行 12px 的作者（「宋 · 苏轼」）等于直接压在青绿山体与
+     绢黄省区上：底噪随位置变化，同一行字的对比度一会儿够一会儿不够。
+     提到 .92：仍然透出一点山色（保留"浮在图上"的层次），
+     但不足以让底噪左右的读性。于是三块表面分得清：
+       地图绢黄/青绿 → 抽屉 #f7f3e8 → 浮层 #fbf7ef（最亮、最靠前）。 */
+  background: rgba(251, 247, 239, .92);
+  border: 1px solid rgba(232, 224, 205, .9);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-l), inset 0 0 0 1px rgba(255, 255, 255, .45);
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
@@ -2802,13 +2850,42 @@ input:focus-visible {
   #sideToggle { display: inline-flex; }
   #sideClose { display: grid; }
 
+  /* ⚠️ 窄屏的 dock **不横向拉满**（原来写 right: 70px）。
+     dock 里在窄屏只剩两件东西：「篇目」与「325首 155地」，加起来 174px。
+     拉满到 310px 之后 justify-content: center 把这两件放在正中，
+     左右各空 68px —— 整个胶囊有四成四是空的，看着像个没画完的框。
+     改成贴着内容走：宽度由内容决定，右边只留一条不与缩放钮相撞的上限。 */
   #bottomBar {
-    left: 14px; right: 70px; bottom: 14px;
-    justify-content: center;
+    left: 14px;
+    right: auto;
+    width: fit-content;
+    max-width: calc(100vw - 14px - 74px);   /* 74 = 缩放钮 44 + 右边距 14 + 间隙 16 */
+    bottom: 14px;
+    justify-content: flex-start;
     overflow: hidden;
     gap: 2px;
     padding: 6px 8px;
   }
+  /* 篇目栏在窄屏是一张**占八成屏宽的整高遮罩**（316 / 390），
+     它一推出来，dock 在右边只剩一条缝 —— 而桌面那条
+     `body.side-open #bottomBar { left: calc(… + --side-w + 14px) }`
+     在窄屏上算出来是**负宽度**：实测 390px 视口下 left=348、right=70，
+     dock 被压成 18px 的一条，里面的「篇目」「325首」直接**溢出到盒子外面**，
+     一路跑到屏幕右缘之外（x 到 444），还盖在缩放钮上（dock z 612 > 缩放钮 610）。
+     窄屏不给它留位置，直接退场 —— 与索引面板同一套做法。
+     visibility 一并收起：只写 opacity 的话它还在 Tab 序里，
+     键盘能走到一个看不见的搜索框上。 */
+  body.side-open #bottomBar,
+  body.side-open #tools {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    /* 隐藏这一侧把 visibility 推迟到淡出结束，避免「啪」地消失 */
+    transition: opacity var(--t-state) ease, transform .3s cubic-bezier(.22, 1, .28, 1),
+                visibility 0s var(--t-state);
+  }
+  body.side-open #bottomBar { left: 14px; transform: translateY(10px); }
+  #tools { transition: opacity var(--t-state) ease, visibility 0s 0s; }
   #bottomBar .bs { padding: 0 8px; }
   #bottomBar .bs em { display: none; }        /* 只留朱印 + 数字 */
   .bs-counts { padding: 0 8px; }
@@ -2833,10 +2910,11 @@ input:focus-visible {
   .detail-body { padding: 26px 22px 40px; }
 }
 
-/* 小手机：连时代组那三格也放不下，只留「N 首 / N 地 + 换一批」 */
+/* 小手机：连时代组那三格也放不下，只留「篇目 + N 首 / N 地」。
+   （原来这里还有一条 `#bottomBar { right: 66px }`，是给「拉满宽度」那版
+   补右边距用的；现在 dock 已经贴着内容走，这条只会把宽度算歪，删掉。） */
 @media (max-width: 560px) {
   #bottomBar .bs { display: none; }
-  #bottomBar { right: 66px; }
 }
 
 /* ══════════ 刘海屏安全区 ══════════
