@@ -29,6 +29,12 @@
   --paper-1:  #f7f3e5;   /* 栏面（比底略亮一档） */
   --paper-2:  #faf7ed;   /* 卡面 · 暖绢白（面板、浮层、搜索框） */
   --paper-3:  #fdfbf4;   /* 最亮，用于反白徽标底 */
+  /* 右侧诗词详情专用。它比 --paper-2 更暖、更靠绢本：
+     抽屉是半透明的磨砂玻璃，底下压的是暖绢黄的地图，用 #faf7ed 这档
+     偏灰的暖白会透出一层冷调，与左边的地图接不上（用户截图里的
+     「右侧接近白色、衔接突兀」）。取绢本的暖调，两半是同一张纸。
+     其它浮层（卡片、命令面板、菜单）不动——它们的底不是绢黄地图。 */
+  --paper-detail: #f7f3e8;
 
   /* ══ 文字 ══ 三级都过 AA，第四级只给图形 */
   --ink:      #293f3b;   /* 主文字 · 墨青        9.75:1 on --paper */
@@ -58,8 +64,15 @@
      这三档是**大面积填色**，不受 WCAG 约束（1.4.11 只管组件与图形边界），
      所以按方案原值保留。两两之间的明度差都 ≥1.5:1，层次分得开。
      浅石绿 #94b5a0 对绢本只有 1.94:1 —— 那是它该有的样子，
-     山脚本来就要化进地面。 */
-  --green-1:  #376b76;   /* 山脊 · 石青（深） */
+     山脚本来就要化进地面。
+
+     ⚠️ green-1 由 #376b76 调到 #3e6b80（石青）。原值色相 191°、
+     与中石绿 #568c78 只差十几度，压在山脊上读成同一层，用户看到的
+     「深层偏灰青绿」就是这个：山体里根本没有可辨的石青。
+     新值色相 197°、饱和提一档，明度基本不动（对绢本仍 ≈3.3:1），
+     山脊与山脚于是分得出两色。terrain.js 的三个色阶、mapEngine 的
+     勾线与背光坡都跟着这一档走。 */
+  --green-1:  #3e6b80;   /* 山脊 · 石青（深） */
   --green-2:  #568c78;   /* 山腰 · 石绿（中） */
   --green-3:  #94b5a0;   /* 山脚 · 浅石绿 */
   --green-4:  #c3d4c2;   /* 更浅的一档，用于远山与过渡 */
@@ -149,13 +162,18 @@ svg { display: block; }
   inset: 0;
   z-index: 1;
   cursor: grab;
-  /* 海面：淡青绿底 + 极细斜纹 */
+  /* 海面：淡青绿底 + 极细斜纹。
+     ⚠️ 两路斜纹的**可见对比度**按方案降了约 35%：原来 .07 / .045 的
+     绢青压在 #eef0e5 上，是「一片看得见的斜线」，比绢本肌理抢眼，
+     视线会被它牵着走。现在 .045 / .028 —— 远看是纸的走向，
+     凑近才看得出纹路，地图与地名的注意力不再被分掉。
+     （纸色的明度关系一点没动，只降了这一层的强度。） */
   background:
     repeating-linear-gradient(46deg,
-      rgba(142, 166, 152, .07) 0 1px,
+      rgba(142, 166, 152, .045) 0 1px,
       rgba(0, 0, 0, 0) 1px 8px),
     repeating-linear-gradient(-46deg,
-      rgba(142, 166, 152, .045) 0 1px,
+      rgba(142, 166, 152, .028) 0 1px,
       rgba(0, 0, 0, 0) 1px 22px),
     linear-gradient(178deg, #eef0e5 0%, #eef0e5 52%, #e6e9e2 100%);
 }
@@ -370,23 +388,29 @@ body.zoom-near .dot-wrap { --dot: 14px; }
      方案给的内芯 #507e6e，高光与收边在它两侧各让开一档。 */
   background: radial-gradient(circle at 34% 28%,
     #7fa896 0%, #507e6e 46%, #3f6a5c 78%, #345a4e 100%);
-  /* 外环用暖绢白、收到 2px —— 方案要求「收敛白色外圈和阴影」，
-     密处（江南）才不会糊成一片白点。 */
+  /* 外环用暖绢白、收到 1.6px —— 方案要求「收敛白色外圈和阴影」。
+     原来是 2px：全国视野下珠子只有 9px，2px 的白环占了直径的将近一半，
+     江浙十几颗挨在一起就是一片白圈，地名和数字角标全被这层白吃掉。
+     1.6px 仍然分得开相邻的珠子（衬底是绢黄或青绿，白环的边界照样清楚），
+     但白的分量少了三分之一，密处读出来是「珠子」而不是「一片白」。
+     阴影也一起收：.28 → .22，珠子不再像贴在纸上的扣子。 */
   box-shadow:
     inset 0 0 0 .5px rgba(38, 62, 54, .45),
-    0 0 0 2px rgba(250, 247, 237, .94),
-    0 0 0 2.6px var(--dot-ring),
-    0 1px 2px rgba(41, 63, 59, .28);
+    0 0 0 1.6px rgba(250, 247, 237, .94),
+    0 0 0 2.2px var(--dot-ring),
+    0 1px 2px rgba(41, 63, 59, .22);
   transition: transform var(--t-state) var(--ease),
               box-shadow var(--t-hover) ease,
               opacity var(--t-state) ease,
               background var(--t-state) ease;
 }
 /* 去糊：撞在一起的珠子**缩小 + 变淡**，两个维度一起退。
-   只降透明度会让密处糊成一片灰点，位置并没让出来。 */
+   只降透明度会让密处糊成一片灰点，位置并没让出来。
+   透明度 .5 → .56：外环收到 1.6px 之后白的分量已经少了三分之一，
+   这里再往回让一点，密处的珠子仍读得出来「这儿有几处」。 */
 .dot-wrap.recede .dot {
   transform: scale(.74);
-  opacity: .5;
+  opacity: .56;
 }
 /* 撞在一起的珠子就别再报地名了——名签正是密处最吵的东西 */
 .dot-wrap.recede .dot-name { opacity: 0 !important; }
@@ -395,9 +419,9 @@ body.zoom-near .dot-wrap { --dot: 14px; }
 body.zoom-far .dot {
   box-shadow:
     inset 0 0 0 .5px rgba(38, 62, 54, .45),
-    0 0 0 3px rgba(250, 247, 237, .95),
-    0 0 0 4px var(--dot-ring),
-    0 1px 3px rgba(41, 63, 59, .32);
+    0 0 0 2px rgba(250, 247, 237, .95),
+    0 0 0 2.8px var(--dot-ring),
+    0 1px 3px rgba(41, 63, 59, .26);
 }
 .dot::after {
   content: "";
@@ -500,9 +524,9 @@ body.zoom-far .dot-name { font-size: 12px; }
   transform: scale(1.16);
   box-shadow:
     inset 0 0 0 .5px rgba(143, 64, 48, .5),
-    0 0 0 3px rgba(250, 247, 237, .95),
-    0 0 0 4.5px rgba(169, 79, 60, .18),
-    0 2px 7px rgba(143, 64, 48, .4);
+    0 0 0 2.6px rgba(250, 247, 237, .95),
+    0 0 0 4px rgba(169, 79, 60, .16),
+    0 2px 7px rgba(143, 64, 48, .36);
 }
 .dot-wrap.on .dot-name {
   margin-top: calc(var(--dot) / 2 + 6px);
@@ -534,7 +558,10 @@ body.zoom-far .dot-name { font-size: 12px; }
   margin: -46px 0 0 -46px;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(169, 79, 60, .2) 0%, rgba(169, 79, 60, .1) 38%, rgba(169, 79, 60, 0) 72%);
+  /* 光晕峰值 .2 → .17（方案给的 15–18% 区间）。
+     92px 的圆铺在密处会同时盖住邻近三四个点位，光晕一浓，
+     旁边那些珠子就整片发红、「当前选中」反而失去了唯一性。 */
+  background: radial-gradient(circle, rgba(169, 79, 60, .17) 0%, rgba(169, 79, 60, .085) 38%, rgba(169, 79, 60, 0) 72%);
   animation: dotPulse 3.8s ease-in-out infinite;
 }
 .dot-ring {
@@ -709,9 +736,13 @@ body.show-prov .prov-label span { opacity: 1; }
   transition: border-color var(--t-hover) ease, box-shadow var(--t-hover) ease;
 }
 .search:hover { border-color: rgba(86, 140, 120, .95); }
+/* focus 用**深石绿**，不用朱砂。
+   方案第五节说得很明确：搜索框保持暖绢白、边框 #d5c9af、focus 用深石绿清晰描边。
+   朱砂在这套语言里专指「当前选中」——搜索框拿到焦点不等于「选中了什么」，
+   用朱砂会让顶栏多出一处红色的歧义。 */
 .search:focus-within {
-  border-color: rgba(169, 79, 60, .45);
-  box-shadow: 0 0 0 3px rgba(169, 79, 60, .08), 0 8px 20px rgba(41, 63, 59, .09),
+  border-color: rgba(55, 107, 96, .85);
+  box-shadow: 0 0 0 3px rgba(55, 107, 96, .12), 0 8px 20px rgba(41, 63, 59, .09),
               inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 .search .i-search {
@@ -1413,6 +1444,13 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(169, 79, 60,
   border-radius: var(--r-seal);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
 }
+/* 三枚时代小签各占青绿里的一档：先唐·深石绿 / 唐·石绿 / 宋·石青。
+   反白的小字压在渐变上，**浅端**才是决定对比度的那一端，所以三组的
+   浅端都压在 ≥4.8:1（实算 5.70 / 4.89 / 5.41，见 tools/check-palette-qianli.js）。
+   底栏其余部分一律不动——方案说「不新增按钮、整体克制」，
+   这里只让三个字各自认得出是哪个时代。 */
+.seal-s.s-lv   { background: linear-gradient(160deg, #487565, #3d6354); }
+.seal-s.s-qing { background: linear-gradient(160deg, #3e6b80, #33586b); }
 .bs em { margin-right: 3px; font-size: 12px; color: var(--ink-3); letter-spacing: 1px; }
 .bs b { font-family: var(--serif); font-size: 15px; font-weight: 600; color: var(--ink); }
 /* 数字不跳：两件事一起做才对。
@@ -1553,7 +1591,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-width: min(94vw, 1240px);
   display: flex;
   flex-direction: column;
-  background: rgba(250, 247, 237, .9);
+  /* 磨砂玻璃的底色从「冷暖白」换成绢本暖调（见 --paper-detail）：
+     不透明度一并从 .9 提到 .93 —— 暖调本身压不住透过来的青绿山体，
+     提一点不透明度，抽屉与左侧地图才是「同一张纸的两半」。 */
+  background: rgba(247, 243, 232, .93);
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
           backdrop-filter: blur(18px) saturate(1.35);
   border-left: 1px solid rgba(86, 140, 120, .5);
@@ -1628,15 +1669,18 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   color: #293f3b;
 }
 .d-sub { margin-top: 6px; font-size: 13px; letter-spacing: 2px; color: var(--ink-3); }
-/* 题下一条极细的金线：把「题名/作者」与下面的正文分开，
-   也让居中的标题有个落点，不至于飘在纸上。 */
+/* 题下一条极细的赭金线（方案：标题短装饰线可用少量赭金）。
+   它本来就是「题签」那一类东西——一笔金线把题名与正文分开，
+   比原来那道石绿渐变线更像卷轴上的签条，金也只占这一根头发丝。
+   ⚠️ 只换这一处：底栏、卡片、面板上的分隔线一律不动，
+   金一多就不是「点睛」了。 */
 .d-sub::after {
   content: "";
   display: block;
   width: 78px; height: 1px;
   margin: 12px auto 0;
   background: linear-gradient(90deg,
-    rgba(86, 140, 120, 0), rgba(86, 140, 120, .72), rgba(86, 140, 120, 0));
+    rgba(165, 133, 79, 0), rgba(165, 133, 79, .78), rgba(165, 133, 79, 0));
 }
 .d-more {
   display: inline-flex;
@@ -1834,8 +1878,12 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-width: 560px;
   margin: 26px auto 0;
   padding: 15px 18px 16px;
-  background: #edf1e8;
-  border: 1px solid rgba(86, 140, 120, .26);
+  /* 浅石绿底 + 一道浅石绿描边（方案值 #eef2e9 / #c8d5c6）。
+     底色与描边都留在青绿里，但比原来那版更淡、更暖一档：
+     抽屉底色换成绢本暖调之后，原来那张偏冷的绿卡会从纸面上「浮起来」，
+     压淡一档才跟纸贴在一起。 */
+  background: #eef2e9;
+  border: 1px solid #c8d5c6;
   border-radius: var(--r-md);
 }
 /* 覆盖 .sec h3 的「居中 + 收窄到文字宽」：这一节的标题靠左，
@@ -1848,7 +1896,9 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   padding-left: 0;
   text-align: left;
 }
-.sec-story h3::before { position: static; margin-top: 0; flex: none; }
+/* 标题左侧那根细线换成石青：故事卡是整张纸里最「青绿」的一块，
+   深石绿的竖条压在浅石绿底上几乎融成一片，石青才立得出来。 */
+.sec-story h3::before { position: static; margin-top: 0; flex: none; background: var(--green-1); }
 .sec-story p {
   max-width: none;
   font-size: 14px;
@@ -1971,7 +2021,17 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   transition: all var(--t-hover) ease;
 }
 .filters button:hover { color: var(--ink); background: rgba(120, 108, 86, .12); }
-.filters button[aria-pressed="true"] { color: #faf7ed; background: var(--seal); border-color: var(--seal); }
+/* 选中的筛选＝**深石绿实底 + 白字**，不是朱砂。
+   方案第五节：「不要用朱砂表达普通筛选选中」——朱砂只留给品牌朱印与
+   地图上的当前地点。索页面板里的朝代/体裁/主题原本是朱砂实底，
+   与命令面板里的同一组筛选（已经是深石绿）自相矛盾，这里并到一套。
+   #376b60 上的暖白字实算 6.11:1，远超 AA。 */
+.filters button[aria-pressed="true"] {
+  color: #faf7ed;
+  background: linear-gradient(180deg, #376b60, #2f5a51);
+  border-color: var(--shan);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+}
 
 .row {
   display: flex;

@@ -68,10 +68,24 @@ export default function Detail() {
     if (on && bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [on, poemId]);
 
-  /* ⚠️ 这里**故意不做**「打开抽屉就把地图挪一下，好让地标露出来」。
-     试过，很打扰：读一首诗是看文字，画面自己滑一下反而把人从字上拽走；
-     连翻几首时更明显。地标露不露出来交给用户自己拖。
-     （从篇目栏 / 命令面板点进来时仍会飞过去——那是用户明确要求「去这里」。） */
+  /* ⚠️ 打开抽屉**不主动**挪地图——读一首诗是看文字，画面自己滑一下
+     反而把人从字上拽走，连翻几首时更明显。这个判断仍然成立。
+     但有一条例外：如果这个地标**根本看不见**（被抽屉压住、或在屏幕外），
+     那「是哪一处」这件事就丢了——用户点开一首诗，左边地图上找不到落点。
+     所以只在「被遮挡或贴边」时才平滑挪一下，露着就一动不动。
+     量之前先等一帧：抽屉的宽度由中间那首竖排诗撑出来（长诗能盖掉七成屏宽），
+     刚 on 的那一帧还没排完版，量到的宽度是错的。 */
+  useEffect(function () {
+    if (!on || !node) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(function () {
+      raf2 = requestAnimationFrame(function () {
+        const e = getEngine();
+        if (e && e.ensurePlaceVisible) e.ensurePlaceVisible(node.id);
+      });
+    });
+    return function () { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, [on, poemId, node]);
 
   /* 键盘 ←/→ 翻篇、L 回到「此处的其他几首」。焦点在输入框里时不抢。 */
   useEffect(function () {
@@ -163,12 +177,16 @@ export default function Detail() {
                 <span id="dPlaceRegion">（{p.place.region || ""}）</span>
               </div>
 
-              {/* 上一篇 / 下一篇：按当前筛选顺序翻，编号让人知道「读到哪了」 */}
+              {/* 上一篇 / 下一篇：按当前筛选顺序翻，编号让人知道「读到哪了」。
+                  长诗名（《水调歌头·明月几时有》这类）在按钮里会省略号截断，
+                  所以除了 title，再给一个**完整的** aria-label ——
+                  title 只是鼠标提示，读屏用户拿不到被截掉的那半截名字。 */}
               <nav className="d-nav" aria-label="篇目翻页">
                 <button type="button" className="dn-btn" disabled={!prev}
                   title={prev ? "上一篇：" + prev.title + "（←）" : "已经是第一篇"}
+                  aria-label={prev ? "上一篇：" + prev.title : "已经是第一篇"}
                   onClick={() => go(prev)}>
-                  <span className="dn-ar">‹</span>
+                  <span className="dn-ar" aria-hidden="true">‹</span>
                   <span className="dn-t">{prev ? prev.title : "已是首篇"}</span>
                 </button>
                 <span className="dn-pos" title="当前筛选下的位置">
@@ -176,9 +194,10 @@ export default function Detail() {
                 </span>
                 <button type="button" className="dn-btn dn-next" disabled={!next}
                   title={next ? "下一篇：" + next.title + "（→）" : "已经是最后一篇"}
+                  aria-label={next ? "下一篇：" + next.title : "已经是最后一篇"}
                   onClick={() => go(next)}>
                   <span className="dn-t">{next ? next.title : "已是末篇"}</span>
-                  <span className="dn-ar">›</span>
+                  <span className="dn-ar" aria-hidden="true">›</span>
                 </button>
               </nav>
               <div id="dTags" className="d-tags">

@@ -31,6 +31,11 @@ export default function BottomBar() {
       seal: e.val === "先唐" ? "古" : e.val,
       unit: e.val === "宋" ? "词" : "诗",
       label: e.label,
+      /* 三枚小签在深石绿 / 石绿 / 石青里各占一档（方案 P1-E）：
+         先唐 → 深石绿、唐 → 石绿、宋 → 石青。三色的实算对比度
+         依次 5.70 / 4.89 / 5.41，都过 AA；色相挨着，整体仍然克制，
+         不会在底栏上炸出三块彩色。 */
+      tone: e.val === "宋" ? "s-qing" : (e.val === "唐" ? "s-lv" : "s-shen"),
       n: list.filter(function (p) { return inEra(p.dynasty, e.val); }).length,
     };
   }).filter(function (e) { return e.n > 0; });
@@ -57,7 +62,7 @@ export default function BottomBar() {
         return (
           <span className="bs" key={e.val}
             title={e.label + " " + e.n + " 首（当前筛选）"}>
-            <i className="seal-s">{e.seal}</i>
+            <i className={"seal-s " + e.tone}>{e.seal}</i>
             <em>{e.unit}</em>
             {/* key 挂在数字上：数值一变 React 换掉这个节点，
                 CSS 的 bsTick 于是重新播一次，读的人能看见「数变了」 */}

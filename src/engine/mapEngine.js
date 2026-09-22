@@ -71,7 +71,7 @@ function shade(hex, amt) {
 }
 
 /* 山脊勾线（羽化与柔光靠几何，不用 CSS blur） */
-const RIDGE_INK = ["#3f6a74", "#446f78", "#4a747c", "#3d6870"];
+const RIDGE_INK = ["#3a6076", "#3f6579", "#44697c", "#386073"];
 /* 山脚收进的「雾色」：接近省区底色，山脚由此没入地面/云气 */
 const RIDGE_MIST = "#ece2c4";
 /* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释）。
@@ -182,11 +182,13 @@ export function createEngine(mapEl) {
       '<stop offset="0" stop-color="#d7c6a0" stop-opacity="0.4"/>' +
       '<stop offset="0.42" stop-color="#e5dec0" stop-opacity="0.06"/>' +
       '<stop offset="1" stop-color="#afcca7" stop-opacity="0.36"/></linearGradient>';
-    /* 纸纹：斜向细线，只在国土上铺一层（.05 的白噪点之外再给一点「纸的走向」） */
+    /* 纸纹：斜向细线，只在国土上铺一层（.05 的白噪点之外再给一点「纸的走向」）。
+       与 #map 海面那道斜纹同步降强度（.055 → .035）：陆地本身是浅绢黄，
+       同一路斜线压在它上面比压在海面上还显眼，密处的地名会被这层纹理噪到。 */
     defs += '<pattern id="landGrain" width="7" height="7" patternUnits="userSpaceOnUse"' +
       ' patternTransform="rotate(38)">' +
       '<rect width="7" height="7" fill="none"/>' +
-      '<path d="M0 0 V7" stroke="rgba(150, 138, 108, 0.055)" stroke-width="1"/></pattern>';
+      '<path d="M0 0 V7" stroke="rgba(150, 138, 108, 0.035)" stroke-width="1"/></pattern>';
     const svg = map.getPane("prov").querySelector("svg");
     if (svg) svg.insertAdjacentHTML("afterbegin", "<defs>" + defs + "</defs>");
   })();
@@ -242,16 +244,36 @@ export function createEngine(mapEl) {
     T.faces.forEach(function (ring) {
       L.polygon(ring, {
         pane: "terrain", lineJoin: "round", lineCap: "round", interactive: false,
-        fillColor: FACE_INK, fillOpacity: 0.085, stroke: false,
+        /* 背光坡＝山体的「转折面」，方案说深石青优先落在高地与转折上，
+           所以这一层从 .085 提到 .12 —— 每座峰的背光半坡明显压深一档，
+           山的体积感是它给的，而不是靠把整座山染蓝。 */
+        fillColor: FACE_INK, fillOpacity: 0.12, stroke: false,
       }).addTo(map);
     });
   }
   /* 山脊上缘的一圈同色柔光。原来是靠 polygon 的粗描边做的，
      切分之后描边会画到每座峰的接缝上，改成就沿脊线描一遍。
-     这道柔光同时是主山与远山的过渡带：白绿之间的硬边由它化开。 */
+     这道柔光同时是主山与远山的过渡带：白绿之间的硬边由它化开。
+     ⚠️ 它原来是 #acc8b5 浅石绿 @.22、10px 宽，正好糊在山脊那条线上——
+     而山脊恰恰是石青该在的位置，深色被自己的「柔光」洗掉了。
+     现在降到 .14：仍然化得开与远山的那道硬边，但不再吃掉山脊的色。 */
   if ((T.hazes || []).length) {
     L.polyline(T.hazes.map(function (h) { return h.latlngs; }), {
-      pane: "terrain", color: "#acc8b5", weight: 10, opacity: 0.22,
+      pane: "terrain", color: "#acc8b5", weight: 10, opacity: 0.14,
+      lineCap: "round", lineJoin: "round", interactive: false,
+    }).addTo(map);
+  }
+  /* 山脊压石青：沿脊线再铺一道**比勾线宽**的柔带。
+     ------------------------------------------------------------
+     山体填充用的是纵向渐变，而渐变的「顶」是整条山脉包围盒的顶边——
+     只有最高的那几座峰会碰到深色档，起伏的山脊线本身拿不到石青，
+     于是整座山读成一片中石绿。真正贴着脊线走的只有这条 polyline，
+     所以石青必须由它来压：宽 7px、圆头、低透明度，是一条柔带而非描边，
+     远看就是「山脊浓、山脚淡」的青绿分层。
+     合并成一条多段线，22 条山脉只占一个 SVG 图元。 */
+  if ((T.ridges || []).length) {
+    L.polyline(T.ridges.map(function (rd) { return rd.latlngs; }), {
+      pane: "terrain", color: "#3f6c82", weight: 7, opacity: 0.26,
       lineCap: "round", lineJoin: "round", interactive: false,
     }).addTo(map);
   }
@@ -289,12 +311,20 @@ export function createEngine(mapEl) {
       /* 主山：纵向（山巅最亮 → 山腰 → 山阴），末端收进地面。
          整条山脉就这一个面，所以不存在段与段的接缝。
          收口拉得长一些（.58 起就往下淡），山脚才像化进纸里，
-         而不是一刀切在底色上。 */
+         而不是一刀切在底色上。
+
+         ⚠️ 深/中/浅三档的**占位**是有意排的（约 20 / 45 / 35）：
+         原来 0 → 0.30 直接从石青插值到石绿，纯石青只存在于 offset 0
+         那一条线上，等于没有——用户看到的「深层偏灰青绿」就是这么来的。
+         现在石青先**实色压住顶上 0.18**，再用 .18→.40 过渡到石绿、
+         .40→.68 实色石绿、之后才交给浅石绿往山脚化开。
+         深色于是占了可见高度的一成八，山脊与山脚才分得出两色。 */
       defs += '<linearGradient id="rg' + t + '" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="' + tones[t][2] + '"/>' +
-        '<stop offset="0.30" stop-color="' + tones[t][1] + '"/>' +
-        '<stop offset="0.58" stop-color="' + tones[t][0] + '"/>' +
-        '<stop offset="0.82" stop-color="' + tones[t][0] + '" stop-opacity="0.5"/>' +
+        '<stop offset="0.18" stop-color="' + tones[t][2] + '"/>' +
+        '<stop offset="0.40" stop-color="' + tones[t][1] + '"/>' +
+        '<stop offset="0.68" stop-color="' + tones[t][0] + '"/>' +
+        '<stop offset="0.86" stop-color="' + tones[t][0] + '" stop-opacity="0.5"/>' +
         '<stop offset="1" stop-color="' + tones[t][0] + '" stop-opacity="0.06"/></linearGradient>';
       /* 远山：整体压淡（纵向：山尖亮、往下渐没入雾） */
       defs += '<linearGradient id="rgf' + t + '" x1="0" y1="0" x2="0" y2="1">' +
@@ -696,6 +726,35 @@ export function createEngine(mapEl) {
   }
 
   /* ============================================================
+     可见区：抽屉 / 篇目栏盖住的那几块不算「看得见」
+     ============================================================ */
+  /* 用户点开一首诗，左边的地图上却找不到「是哪一处」——因为抽屉正好
+     盖在上面。任何「把某点挪进视野」的判断都必须先扣掉被面板占掉的宽度，
+     否则算出来的「可见」是整块画布，等于没算。 */
+  function visiblePad() {
+    const w = map.getSize().x;
+    let left = 18, right = 18, top = 14, bottom = 14;
+    const d = document.getElementById("detail");
+    if (d && d.classList.contains("on")) {
+      /* ⚠️ 用 **offsetWidth（布局宽度）**，不用 getBoundingClientRect().left：
+         抽屉是 translateX(102%) → 0 滑进来的，transition 途中 rect.left 还在
+         屏幕右缘之外，量出来等于「没被挡住」，判断全错。宽度则完全不受
+         位移影响（这条 transition 只动 transform，不缩放）。
+         抽屉贴着右缘，所以被占掉的宽度就是它自己的宽度。 */
+      const dw = d.offsetWidth;
+      if (dw > 0 && dw < w) right = Math.max(right, dw + 20);
+    }
+    if (document.body.classList.contains("side-open")) {
+      const sb = document.getElementById("sidebar");
+      if (sb) {
+        const sr = sb.getBoundingClientRect();
+        if (sr.width > 0) left = Math.max(left, sr.right + 16);
+      }
+    }
+    return { left: left, right: right, top: top, bottom: bottom };
+  }
+
+  /* ============================================================
      视野
      ============================================================ */
   /** 把某点放到「画面宽度的 frac 处、高度 46% 处」所需的地图中心。
@@ -707,6 +766,48 @@ export function createEngine(mapEl) {
       proj.add([size.x / 2 - size.x * frac, size.y * 0.04]),
       zoom
     );
+  }
+
+  /** 「去这里」时的落点：放在**可见区**的水平中点，而不是画布的中点。
+      原来写死 frac = 0.38，等于假设抽屉只占掉三成多；长诗（《琵琶行》那种）
+      的抽屉能盖掉七成屏宽，0.38 处的地标正好落在抽屉底下——用户明确说了
+      「去这里」，结果到了却看不见。改成按实际可见区算。 */
+  function visibleFrac() {
+    const w = map.getSize().x;
+    const pad = visiblePad();
+    const x1 = pad.left, x2 = w - pad.right;
+    if (x2 - x1 < 120) return 0.34;          // 可见区窄到没法居中，退到老值
+    return (x1 + x2) / 2 / w;
+  }
+
+  /* 「去这里」的飞行状态：ensurePlaceVisible 靠它避免半途打断自己。
+     flyingUntil 取飞行时长 + 一点余量（flyTo 的 duration 是秒）。 */
+  let flyingTo = null, flyingUntil = 0;
+
+  /** 若某处地标落在可见区之外（含被抽屉压住），平滑挪回可见区。
+      已经露着就**一点不动**——每开一次抽屉地图都自己滑一下是打扰，
+      用户翻同一处的几首诗时尤其明显。返回是否真的挪了。 */
+  function ensurePlaceVisible(placeId) {
+    const node = PLACE_BY_ID[placeId];
+    if (!node) return false;
+    /* 已经有一次「去这里」的飞行在途：它落点就是可见区中点，
+       这时再量一次位置是**飞行途中**的中间态，必然判成「不可见」，
+       于是第二段动画把第一段打断——变成地图抖一下。让飞行跑完。 */
+    if (flyingTo === placeId && Date.now() < flyingUntil) return false;
+    const size = map.getSize();
+    const pad = visiblePad();
+    const x1 = pad.left, x2 = size.x - pad.right;
+    const y1 = pad.top, y2 = size.y - pad.bottom;
+    if (x2 - x1 < 120 || y2 - y1 < 120) return false;
+    const p = map.latLngToContainerPoint([node.lat, node.lng]);
+    /* 余量 34px：地标底下还挂着一行地名签（选中时是朱红小匾，比珠子宽得多），
+       只把珠子挪进来是不够的，名签还得跟着露出来。 */
+    const m = 34;
+    if (p.x >= x1 + m && p.x <= x2 - m && p.y >= y1 + m && p.y <= y2 - m) return false;
+    const center = offsetCenter(node, map.getZoom(), visibleFrac());
+    if (MOTION.on) map.panTo(center, { duration: 0.45, easeLinearity: 0.28 });
+    else map.setView(center, map.getZoom(), { animate: false });
+    return true;
   }
 
   function fitChina() {
@@ -837,18 +938,25 @@ export function createEngine(mapEl) {
       return out;
     },
     /** 飞去某处并开卡（侧栏点篇目 / 命令面板 / 随机一首都走这里）。
-        落点略偏左：抽屉从右侧盖过来时，地标不至于正正好被压住。
+        落点是**可见区的水平中点**（见 visibleFrac）：抽屉从右侧盖过来时，
+        地标落在还看得见的那半边，而不是画布中点——画布中点对长诗来说
+        就在抽屉底下。
         ——只在**用户明确说「去这里」**时才飞；打开抽屉本身不碰地图，
         见 components/Detail.jsx 里的说明。 */
     goToPlace: function (placeId, minZoom) {
       const node = PLACE_BY_ID[placeId];
       if (!node) return null;
       const z = Math.max(map.getZoom(), minZoom || 5.6);
-      const center = offsetCenter(node, z, 0.38);
+      const center = offsetCenter(node, z, visibleFrac());
+      flyingTo = placeId;
+      flyingUntil = Date.now() + (MOTION.on ? 1350 : 120);
       if (MOTION.on) map.flyTo(center, z, { duration: 1.05 });
       else map.setView(center, z, { animate: false });
       return node;
     },
+    /** 供详情抽屉调用：抽屉开合之后，确认当前选中的地标在可见区内 */
+    ensurePlaceVisible: ensurePlaceVisible,
+    visiblePad: visiblePad,
     closeAll: function () { dismissOverlays(); },
     invalidate: function () { map.invalidateSize(); },
   };
