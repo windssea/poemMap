@@ -12,46 +12,68 @@
 
 /* ══════════ 令牌 ══════════ */
 :root {
-  /* ══ 表面 ══ 宣纸白 → 暖白，三级足够，不再有第四级 */
-  --paper:    #f6f3ea;   /* 页面底 · 宣纸白 */
-  --paper-1:  #fbf9f3;   /* 栏面 */
-  --paper-2:  #fffcf5;   /* 卡面 · 暖白 */
-  --paper-3:  #fffdf9;   /* 最亮，用于反白徽标底 */
+  /* ══════════════════════════════════════════════════════════
+     《千里江山图》设色 · 绢本为底、石青石绿为主、赭金勾边、朱砂点睛
+     ----------------------------------------------------------
+     整套色板的取值都过了 WCAG 实算（tools/check-palette-qianli.js）。
+     方案里给的原始建议有 9 处不达标，凡是**要读的字**都压到了阈值，
+     凡是**大面积填色**（山脚浅石绿）与**禁用态**都按 WCAG 的适用范围保留原值。
+     每一条调整都写在下面，附原值与实算结果。
 
-  /* ══ 文字 ══ 三级都过 AA（4.5:1），第四级只给图形 */
-  --ink:      #292e2b;   /* 主文字 · 墨黑        12.45:1 on --paper */
-  --ink-2:    #4e5a52;   /* 次级                  7.0:1 */
-  --ink-3:    #6a6e68;   /* 辅助 · 灰绿           4.68:1 */
-  --ink-gfx:  #979b93;   /* **仅图形**：箭头、图标描边 */
+     面积配比（视觉目标，非 CSS 比例）：
+       绢本及浅暖色 65% · 石绿及浅石绿 20% · 石青及青碧 7% · 赭金及暖灰 5% · 朱砂 3%
+     ══════════════════════════════════════════════════════════ */
 
-  /* ══ 线 ══ */
-  --line:      #d8d0c3;  /* 分割线 · 纸灰（装饰，1.38:1 足够） */
-  --line-2:    #ece6dc;  /* 更浅的分隔 */
-  --line-ctrl: #8e8676;  /* **控件描边**：表单/按钮边界要 3:1 */
+  /* ══ 表面 ══ 绢本为底，暖绢白承载内容 */
+  --paper:    #f3efdf;   /* 全站背景 · 绢本底色 */
+  --paper-1:  #f7f3e5;   /* 栏面（比底略亮一档） */
+  --paper-2:  #faf7ed;   /* 卡面 · 暖绢白（面板、浮层、搜索框） */
+  --paper-3:  #fdfbf4;   /* 最亮，用于反白徽标底 */
 
-  /* ══ 主题色 · 山青 ══ 导航、筛选、链接、焦点环、地图主题 */
-  --shan:      #4c675b;
-  --shan-d:    #3d5349;
-  --shan-l:    #7f9589;
-  --shan-wash: rgba(76, 103, 91, .09);
+  /* ══ 文字 ══ 三级都过 AA，第四级只给图形 */
+  --ink:      #293f3b;   /* 主文字 · 墨青        9.75:1 on --paper */
+  --ink-2:    #3f5149;   /* 次级                  7.3:1 */
+  --ink-3:    #656f68;   /* 辅助  ← 方案原值 #748078 只有 3.57:1，压到 4.53:1 */
+  --ink-gfx:  #8f9489;   /* **仅图形**：箭头、图标描边 */
+
+  /* ══ 线 ══ 赭金灰系，比原来的冷灰暖 */
+  --line:      #d5c9af;  /* 分割线 · 绢黄灰 */
+  --line-2:    #e8e0cd;  /* 更浅的分隔 */
+  --line-ctrl: #8a7f66;  /* **控件描边**：表单/按钮边界要 3:1 */
+
+  /* ══ 主题色 · 石绿 ══ 导航、筛选、链接、焦点环
+     填色用 #568c78；**当文字用时**压到 #487565（方案原值只有 3.36:1） */
+  --shan:      #376b60;  /* 深石绿：选中态、实底按钮   白字 6.11:1 */
+  --shan-d:    #2f5a51;
+  --shan-l:    #568c78;  /* 中石绿：大面积填色 */
+  --shan-txt:  #487565;  /* 石绿当文字（4.55:1） */
+  --shan-wash: rgba(55, 107, 96, .09);
 
   /* ══ 强调色 · 朱砂 ══ **只用于「当前选中」与品牌朱印**，不做通用装饰 */
-  --seal:      #a84f3f;
-  --seal-d:    #8c3f31;
-  --seal-wash: rgba(168, 79, 63, .09);
+  --seal:      #a94f3c;  /* 4.71:1 on --paper；实底白字 5.43:1 */
+  --seal-d:    #8f4030;
+  --seal-wash: rgba(169, 79, 60, .09);
 
-  /* ══ 青绿山水 ══ 比原来降一档饱和度，让地标成为第一视觉重点 */
-  --green-1:  #7f978a;
-  --green-2:  #a3b7a8;
-  --green-3:  #c8d6c8;
-  --green-4:  #dfe8dd;
-  --water:    #93aeb8;
-  --sea:      #eceee5;
+  /* ══ 青绿山水 ══ 山体三档：石青 → 石绿 → 浅石绿。
+     这三档是**大面积填色**，不受 WCAG 约束（1.4.11 只管组件与图形边界），
+     所以按方案原值保留。两两之间的明度差都 ≥1.5:1，层次分得开。
+     浅石绿 #94b5a0 对绢本只有 1.94:1 —— 那是它该有的样子，
+     山脚本来就要化进地面。 */
+  --green-1:  #376b76;   /* 山脊 · 石青（深） */
+  --green-2:  #568c78;   /* 山腰 · 石绿（中） */
+  --green-3:  #94b5a0;   /* 山脚 · 浅石绿 */
+  --green-4:  #c3d4c2;   /* 更浅的一档，用于远山与过渡 */
+  --water:    #518498;   /* 河流 · 青碧（方案原值 #6398ac 压在陆地上只有 2.33:1） */
+  --sea:      #eef0e5;   /* 海面 */
 
-  /* ══ 旧名保留 ══ 3000 行 CSS 里还有引用，映射到新语义而不是删掉 */
-  --gold:     var(--shan-l);
-  --gold-l:   #b9c7bc;
-  --gold-d:   var(--shan);
+  /* ══ 赭金 ══ 山脉勾边、题签、分割线。
+     它是**图形**（3:1 即可），方案原值 #b39460 对绢本只有 2.49:1，
+     压到 #a5854f = 3.00:1；压在陆地绢黄上再深一档 #967948 */
+  --gold:     #a5854f;
+  --gold-l:   #c8b183;
+  --gold-d:   #967948;
+  --land:     #eadcb5;   /* 陆地 · 绢黄 */
+  --border:   #c6b78f;   /* 行政边界 · 赭灰 */
 
   --serif: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
   --sans:  "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
@@ -60,6 +82,11 @@
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 12px;
+  --r-seal: 3px;   /* 朱印：方形微圆角，刻意与卡片圆角分属两套语言 */
+
+  /* ══ 描边 ══ 图标只有一档；装饰细线单独一档 */
+  --stroke-icon: 2;
+  --stroke-hair: 1;
 
   /* ══ 间距 ══ 8px 基准 */
   --s1: 8px;
@@ -67,32 +94,29 @@
   --s3: 24px;
   --s4: 32px;
 
-  /* ══ 地图小字的纸色描边 ══
-     地名会飘到省区、山体、水面上，底色从浅米黄到中绿都有。
-     换字色救不了这件事（同一颜色压在山腰只有 2.5:1），
-     靠描边把字从任何底色里托出来。
+  /* ══ 地图小字的绢色描边 ══
+     地名会飘到省区、山体、水面上，底色从绢黄到石绿都有。
+     换字色救不了这件事，靠描边把字从任何底色里托出来。
 
      ⚠️ 用**硬描边**（四个 1px 偏移 + 1px 微光），不要用大半径模糊。
-     原来写的是 `0 0 3px + 0 0 6px` —— 12px 的字，光晕半径 6px，
-     等于把每个字的笔画都糊进一圈白光里，看起来就是「文字模糊」。
-     地图产品的通行做法也是硬描边（Mapbox 的 text-halo-blur 默认就是 0）。 */
-  --label-halo: -1px -1px 0 rgba(255, 253, 247, .8),
-                 1px -1px 0 rgba(255, 253, 247, .8),
-                -1px  1px 0 rgba(255, 253, 247, .8),
-                 1px  1px 0 rgba(255, 253, 247, .8),
-                 0 0 1px rgba(255, 253, 247, .9);
+     曾经写成 `0 0 3px + 0 0 6px` —— 12px 的字配 6px 光晕，
+     等于把每个笔画都糊进一圈白光里，看起来就是「文字模糊」。 */
+  --label-halo: -1px -1px 0 rgba(250, 247, 237, .82),
+                 1px -1px 0 rgba(250, 247, 237, .82),
+                -1px  1px 0 rgba(250, 247, 237, .82),
+                 1px  1px 0 rgba(250, 247, 237, .82),
+                 0 0 1px rgba(250, 247, 237, .92);
 
-  /* ══ 表面 ══ 所有浮在纸面之上的控件共用同一套纸面、描边、阴影、圆角。
-     原来搜索框、筛选条、底栏、缩放钮各写各的渐变与阴影，凑在一起不像一套东西。 */
-  --surface-top:  #fffdf9;
-  --surface-bot:  #fbf9f3;
-  --surface-line: rgba(216, 208, 195, .95);
+  /* ══ 表面 ══ 所有浮在绢面之上的控件共用同一套绢白、描边、阴影、圆角 */
+  --surface-top:  #fdfbf4;
+  --surface-bot:  #f7f3e5;
+  --surface-line: rgba(213, 201, 175, .95);
   --surface:      linear-gradient(180deg, var(--surface-top), var(--surface-bot));
 
-  /* ══ 阴影 ══ 默认不加，只在悬停与浮层用。色相染背景墨色，不用中性纯黑 */
-  --shadow-s: 0 1px 3px rgba(41, 46, 43, .07);
-  --shadow-m: 0 6px 18px rgba(41, 46, 43, .10);
-  --shadow-l: 0 16px 40px rgba(41, 46, 43, .16);
+  /* ══ 阴影 ══ 默认不加，只在悬停与浮层用。色相染墨青，不用中性纯黑 */
+  --shadow-s: 0 1px 3px rgba(41, 63, 59, .07);
+  --shadow-m: 0 6px 18px rgba(41, 63, 59, .10);
+  --shadow-l: 0 16px 40px rgba(41, 63, 59, .16);
 
   /* ══ 动效时长 ══ 规范：悬停 120–160 / 状态切换 180–240 / 地图 300–500 */
   --t-hover: .14s;
@@ -133,7 +157,7 @@ svg { display: block; }
     repeating-linear-gradient(-46deg,
       rgba(142, 166, 152, .045) 0 1px,
       rgba(0, 0, 0, 0) 1px 22px),
-    linear-gradient(178deg, #eceee5 0%, #eceee5 52%, #e6e9e2 100%);
+    linear-gradient(178deg, #eef0e5 0%, #eef0e5 52%, #e6e9e2 100%);
 }
 #map:active { cursor: grabbing; }
 
@@ -198,17 +222,17 @@ html.motion-off .p-crane { animation: none; }
   inset: 11px;
   z-index: 590;
   pointer-events: none;
-  border: 1px solid rgba(76, 103, 91, .34);
+  border: 1px solid rgba(86, 140, 120, .34);
   border-radius: var(--r-seal);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 253, 246, .42),
+    inset 0 0 0 1px rgba(250, 247, 237, .42),
     inset 0 0 42px rgba(120, 96, 56, .055);
 }
 #mount::before {
   content: "";
   position: absolute;
   inset: 4px;
-  border: 1px solid rgba(76, 103, 91, .15);
+  border: 1px solid rgba(86, 140, 120, .15);
   border-radius: var(--r-seal);
 }
 /* 四角包角：两段短线拼成的「L」，只在内侧，不外凸 */
@@ -216,7 +240,7 @@ html.motion-off .p-crane { animation: none; }
   position: absolute;
   width: 17px;
   height: 17px;
-  border: 0 solid rgba(76, 103, 91, .52);
+  border: 0 solid rgba(86, 140, 120, .52);
 }
 .mt-c1 { left: 4px;  top: 4px;    border-left-width: 1px;  border-top-width: 1px; }
 .mt-c2 { right: 4px; top: 4px;    border-right-width: 1px; border-top-width: 1px; }
@@ -299,7 +323,7 @@ html.motion-off .p-crane { animation: none; }
   /* 珠径随缩放走：全国视野下点小而密（不糊成一片），
      放大后珠子放大、好点也好认。由 mapEngine 在缩放到档时切 body 上的类。 */
   --dot: 12px;
-  --dot-ring: rgba(76, 103, 91, .22);
+  --dot-ring: rgba(86, 140, 120, .22);
 }
 /* 命中区补到 24×24（WCAG 2.5.8 AA 的下限）。
    珠子本身只有 12px——鼠标还凑合，手指基本点不中。
@@ -342,15 +366,17 @@ body.zoom-near .dot-wrap { --dot: 14px; }
   height: var(--dot);
   margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
   border-radius: 50%;
+  /* 玉石感：内芯是中石绿，顶部再亮一档当高光，底部压深一档收边。
+     方案给的内芯 #507e6e，高光与收边在它两侧各让开一档。 */
   background: radial-gradient(circle at 34% 28%,
-    #b6c8ba 0%, #6f8a79 44%, #4c675b 74%, #3f5549 100%);
-  /* 外圈减薄：原来是 2.5px 纸白 + 3.5px 环 + 投影，视觉直径接近 19px，
-     密处一叠就显得「厚重」。收到 2px + 2.6px，珠子本身仍是 12px。 */
+    #7fa896 0%, #507e6e 46%, #3f6a5c 78%, #345a4e 100%);
+  /* 外环用暖绢白、收到 2px —— 方案要求「收敛白色外圈和阴影」，
+     密处（江南）才不会糊成一片白点。 */
   box-shadow:
-    inset 0 0 0 .5px rgba(38, 54, 46, .5),
-    0 0 0 2px rgba(255, 252, 245, .92),
+    inset 0 0 0 .5px rgba(38, 62, 54, .45),
+    0 0 0 2px rgba(250, 247, 237, .94),
     0 0 0 2.6px var(--dot-ring),
-    0 1px 2px rgba(41, 46, 43, .3);
+    0 1px 2px rgba(41, 63, 59, .28);
   transition: transform var(--t-state) var(--ease),
               box-shadow var(--t-hover) ease,
               opacity var(--t-state) ease,
@@ -368,10 +394,10 @@ body.zoom-near .dot-wrap { --dot: 14px; }
    远视野下再加半像素，珠子越小越需要这层「留白」 */
 body.zoom-far .dot {
   box-shadow:
-    inset 0 0 0 .5px rgba(38, 54, 46, .5),
-    0 0 0 3px rgba(255, 252, 245, .95),
+    inset 0 0 0 .5px rgba(38, 62, 54, .45),
+    0 0 0 3px rgba(250, 247, 237, .95),
     0 0 0 4px var(--dot-ring),
-    0 1px 3px rgba(41, 46, 43, .32);
+    0 1px 3px rgba(41, 63, 59, .32);
 }
 .dot::after {
   content: "";
@@ -385,17 +411,21 @@ body.zoom-far .dot {
   pointer-events: none;
 }
 /* 一处多首：金环实一点，扫一眼就知道「这点开是一串」 */
-.dot.many { --dot-ring: rgba(76, 103, 91, .55); }
+.dot.many { --dot-ring: rgba(86, 140, 120, .55); }
 
 /* 悬停：只放大一档 + 纸白圈加厚。**不加色** —— 红色要留给「选中」，
    否则鼠标一划过整片地图就红起来，选中态反而没了分量。 */
+/* 悬停：内芯换石青、加一圈 17% 石青光晕（方案的值）。
+   这是**唯一**用到石青的交互态，与选中的朱砂分得清清楚楚。 */
 .dot-wrap:hover .dot {
+  background: radial-gradient(circle at 34% 28%,
+    #5f97a2 0%, #376b76 46%, #2c5a63 78%, #24505a 100%);
   transform: scale(1.28);
   box-shadow:
-    inset 0 0 0 .5px rgba(38, 54, 46, .55),
-    0 0 0 3px rgba(255, 252, 245, .96),
-    0 0 0 4.5px var(--dot-ring),
-    0 2px 7px rgba(41, 46, 43, .42);
+    inset 0 0 0 .5px rgba(31, 66, 74, .5),
+    0 0 0 3px rgba(250, 247, 237, .96),
+    0 0 0 4.5px rgba(55, 107, 118, .17),
+    0 2px 7px rgba(41, 63, 59, .38);
 }
 .dot-wrap:hover { z-index: 40; }
 /* 键盘焦点落在珠子上：给一圈**明显**的朱红环 + 放大。
@@ -407,21 +437,21 @@ body.zoom-far .dot {
 .dot-wrap:focus-visible .dot {
   transform: scale(1.45);
   box-shadow:
-    inset 0 0 0 .5px rgba(140, 63, 49, .5),
+    inset 0 0 0 .5px rgba(143, 64, 48, .5),
     0 0 0 3px rgba(255, 252, 242, .98),
     0 0 0 6px var(--seal),
-    0 3px 10px rgba(41, 46, 43, .5);
+    0 3px 10px rgba(41, 63, 59, .5);
 }
 .dot-wrap:focus-visible .dot-name {
   margin-top: calc(var(--dot) / 2 + 6px);
   padding: 3px 10px;
   font-size: 13px;
   letter-spacing: 2px;
-  color: #fffcf5;
-  background: linear-gradient(180deg, #a84f3f, #8c3f31);
+  color: #faf7ed;
+  background: linear-gradient(180deg, #a94f3c, #8f4030);
   border: 1px solid rgba(255, 226, 196, .5);
   border-radius: var(--r-seal);
-  box-shadow: 0 4px 12px rgba(41, 46, 43, .34), inset 0 0 0 1px rgba(255, 240, 220, .16);
+  box-shadow: 0 4px 12px rgba(41, 63, 59, .34), inset 0 0 0 1px rgba(255, 240, 220, .16);
   text-shadow: none;
 }
 .dot-name {
@@ -445,7 +475,7 @@ body.zoom-far .dot {
   font-weight: 500;
   letter-spacing: 0px;
   line-height: 1.25;
-  color: #43584d;                 /* 一级：可点地名，三层里最重 */
+  color: #293f3b;                 /* 一级：可点地名 = 墨青（方案第五节） */
   white-space: nowrap;
   /* 字压在山与色块上：描一圈纸色、再加一点点暖光，别用三重重阴影（会糊）。
      与省名/山名共用 --label-halo，地图小字靠它立住，不靠加粗。 */
@@ -466,24 +496,24 @@ body.zoom-far .dot-name { font-size: 12px; }
 .dot-wrap.on { z-index: 30; }
 .dot-wrap.on .dot {
   background: radial-gradient(circle at 34% 28%,
-    #d8b3a5 0%, #a84f3f 44%, #8c3f31 72%, #8c3f31 100%);
+    #dda393 0%, #a94f3c 44%, #8f4030 72%, #8f4030 100%);
   transform: scale(1.16);
   box-shadow:
-    inset 0 0 0 .5px rgba(140, 63, 49, .5),
-    0 0 0 3px rgba(255, 252, 242, .95),
-    0 0 0 4.5px rgba(168, 79, 63, .3),
-    0 2px 7px rgba(140, 63, 49, .4);
+    inset 0 0 0 .5px rgba(143, 64, 48, .5),
+    0 0 0 3px rgba(250, 247, 237, .95),
+    0 0 0 4.5px rgba(169, 79, 60, .18),
+    0 2px 7px rgba(143, 64, 48, .4);
 }
 .dot-wrap.on .dot-name {
   margin-top: calc(var(--dot) / 2 + 6px);
   padding: 3px 10px;
   font-size: 13px;
   letter-spacing: 2px;
-  color: #fffcf5;
-  background: linear-gradient(180deg, #a84f3f, #8c3f31);
+  color: #faf7ed;
+  background: linear-gradient(180deg, #a94f3c, #8f4030);
   border: 1px solid rgba(255, 226, 196, .5);
   border-radius: var(--r-seal);
-  box-shadow: 0 4px 12px rgba(41, 46, 43, .34), inset 0 0 0 1px rgba(255, 240, 220, .16);
+  box-shadow: 0 4px 12px rgba(41, 63, 59, .34), inset 0 0 0 1px rgba(255, 240, 220, .16);
   text-shadow: none;
 }
 .dot-wrap.on .dot-name::before {
@@ -494,9 +524,9 @@ body.zoom-far .dot-name { font-size: 12px; }
   width: 0; height: 0;
   margin-left: -4px;
   border: 4px solid transparent;
-  border-bottom-color: #a84f3f;
+  border-bottom-color: #a94f3c;
 }
-.dot-wrap.on .dot-count { color: #fffcf5; opacity: 1; }
+.dot-wrap.on .dot-count { color: #faf7ed; opacity: 1; }
 .dot-glow {
   position: absolute;
   left: 50%; top: 50%;
@@ -504,7 +534,7 @@ body.zoom-far .dot-name { font-size: 12px; }
   margin: -46px 0 0 -46px;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 79, 63, .2) 0%, rgba(168, 79, 63, .1) 38%, rgba(168, 79, 63, 0) 72%);
+  background: radial-gradient(circle, rgba(169, 79, 60, .2) 0%, rgba(169, 79, 60, .1) 38%, rgba(169, 79, 60, 0) 72%);
   animation: dotPulse 3.8s ease-in-out infinite;
 }
 .dot-ring {
@@ -513,7 +543,7 @@ body.zoom-far .dot-name { font-size: 12px; }
   width: calc(var(--dot) + 2px); height: calc(var(--dot) + 2px);
   margin: calc((var(--dot) + 2px) / -2) 0 0 calc((var(--dot) + 2px) / -2);
   border-radius: 50%;
-  border: 1.2px solid rgba(168, 79, 63, .46);
+  border: 1.2px solid rgba(169, 79, 60, .46);
   pointer-events: none;
   animation: dotRipple 3.2s cubic-bezier(.2, .6, .4, 1) infinite;
 }
@@ -565,7 +595,7 @@ body.show-prov .prov-label span { opacity: 1; }
   font-family: var(--serif);
   font-size: 12px;
   letter-spacing: 3px;
-  color: #63757e;                 /* 河名带一点水色，与山名区分 */
+  color: #496572;                 /* 河名带一点水色；对陆地 4.55:1（原 4.17） */
   text-shadow: var(--label-halo);
   white-space: nowrap;
 }
@@ -603,15 +633,15 @@ body.show-prov .prov-label span { opacity: 1; }
   font-family: var(--serif);
   font-size: 21px;
   font-weight: 600;
-  color: #fffcf5;
-  background: linear-gradient(160deg, #a84f3f, #8c3f31);
+  color: #faf7ed;
+  background: linear-gradient(160deg, #a94f3c, #8f4030);
   border-radius: var(--r-sm);
-  box-shadow: 0 3px 10px rgba(41, 46, 43, .34), inset 0 0 0 1px rgba(255, 236, 214, .3);
+  box-shadow: 0 3px 10px rgba(41, 63, 59, .34), inset 0 0 0 1px rgba(250, 247, 237, .3);
   transition: transform .25s cubic-bezier(.2, .8, .3, 1.3), box-shadow var(--t-state) ease;
 }
 .seal-big:hover {
   transform: rotate(-4deg) scale(1.05);
-  box-shadow: 0 5px 14px rgba(41, 46, 43, .42), inset 0 0 0 1px rgba(255, 236, 214, .42);
+  box-shadow: 0 5px 14px rgba(41, 63, 59, .42), inset 0 0 0 1px rgba(250, 247, 237, .42);
 }
 .b-text h1 {
   font-family: var(--serif);
@@ -619,7 +649,7 @@ body.show-prov .prov-label span { opacity: 1; }
   font-weight: 600;
   letter-spacing: 3px;
   line-height: 1.14;
-  color: #292e2b;
+  color: #293f3b;
 }
 .b-text p {
   margin-top: 5px;
@@ -633,24 +663,24 @@ body.show-prov .prov-label span { opacity: 1; }
   gap: 12px;
   margin: 2px 0 0 22px;
   padding-left: 20px;
-  border-left: 1px solid rgba(76, 103, 91, .5);
+  border-left: 1px solid rgba(86, 140, 120, .5);
 }
 .cp-line {
   writing-mode: vertical-rl;
   font-family: var(--serif);
   font-size: 13px;
   letter-spacing: 4px;
-  /* 原来是 #6a6e68（实测 3.44:1，只够大字与图形，而这是 12.5px 的小字）。
+  /* 原来是 #656f68（实测 3.44:1，只够大字与图形，而这是 12.5px 的小字）。
      它虽然挂在 aria-hidden 的装饰容器里，但**看得见的字就是要读的字**，
-     压到 AA 档 #6a6e68（4.60:1）。 */
-  color: #6a6e68;
+     压到 AA 档 #656f68（4.60:1）。 */
+  color: #656f68;
 }
 .cp-seal {
   width: 11px; height: 11px;
   margin-top: 2px;
   background: var(--seal);
   border-radius: var(--r-seal);
-  box-shadow: inset 0 0 0 1px rgba(255, 236, 214, .45);
+  box-shadow: inset 0 0 0 1px rgba(250, 247, 237, .45);
 }
 
 /* ══════════ 右上搜索与筛选 ══════════ */
@@ -678,10 +708,10 @@ body.show-prov .prov-label span { opacity: 1; }
   box-shadow: var(--shadow-s), inset 0 1px 0 rgba(255, 255, 255, .9);
   transition: border-color var(--t-hover) ease, box-shadow var(--t-hover) ease;
 }
-.search:hover { border-color: rgba(76, 103, 91, .95); }
+.search:hover { border-color: rgba(86, 140, 120, .95); }
 .search:focus-within {
-  border-color: rgba(168, 79, 63, .45);
-  box-shadow: 0 0 0 3px rgba(168, 79, 63, .08), 0 8px 20px rgba(41, 46, 43, .09),
+  border-color: rgba(169, 79, 60, .45);
+  box-shadow: 0 0 0 3px rgba(169, 79, 60, .08), 0 8px 20px rgba(41, 63, 59, .09),
               inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 .search .i-search {
@@ -706,7 +736,7 @@ body.show-prov .prov-label span { opacity: 1; }
 }
 .search input::placeholder { color: var(--ink-3); letter-spacing: 1px; }
 .search input::-webkit-search-cancel-button { display: none; }
-.search-mark { flex: none; width: 30px; height: 11px; fill: #d8d0c3; }
+.search-mark { flex: none; width: 30px; height: 11px; fill: #d5c9af; }
 /* 「/」快捷提示：输入框聚焦时收起来，不跟光标抢位置 */
 .q-kbd {
   flex: none;
@@ -716,8 +746,8 @@ body.show-prov .prov-label span { opacity: 1; }
   font-size: 11px;
   line-height: 1.5;
   color: var(--ink-3);
-  background: rgba(76, 103, 91, .13);
-  border: 1px solid rgba(76, 103, 91, .3);
+  background: rgba(86, 140, 120, .13);
+  border: 1px solid rgba(86, 140, 120, .26);
   border-radius: var(--r-sm);
   transition: opacity var(--t-hover) ease;
 }
@@ -781,18 +811,18 @@ body.show-prov .prov-label span { opacity: 1; }
   letter-spacing: 1px;
   white-space: nowrap;      /* 字不许竖着排 */
   color: var(--ink-2);
-  background: rgba(76, 103, 91, .07);
+  background: rgba(86, 140, 120, .07);
   border: 1px solid transparent;
   border-radius: 999px;
   transition: color var(--t-hover) ease, background var(--t-hover) ease, border-color var(--t-hover) ease, box-shadow var(--t-hover) ease;
 }
-.chips button:hover { color: var(--ink); background: rgba(76, 103, 91, .2); }
+.chips button:hover { color: var(--ink); background: rgba(86, 140, 120, .2); }
 /* 筛选属于「导航」，用主题色山青；朱砂留给「当前选中」那类更强的东西。
    这样顶栏一眼看过去是青的，红只在真正需要指认的地方出现。 */
 .chips button[aria-pressed="true"] {
-  color: #fffcf5;
-  background: linear-gradient(180deg, #557063, #435b4f);
-  box-shadow: 0 2px 7px rgba(41, 46, 43, .2), inset 0 1px 0 rgba(255, 255, 255, .16),
+  color: #faf7ed;
+  background: linear-gradient(180deg, #376b60, #2f5a51);
+  box-shadow: 0 2px 7px rgba(41, 63, 59, .2), inset 0 1px 0 rgba(255, 255, 255, .16),
               inset 0 0 0 1px rgba(255, 255, 255, .1);
 }
 .chip-sep { width: 1px; height: 15px; background: linear-gradient(180deg, transparent, var(--line) 22%, var(--line) 78%, transparent); }
@@ -803,7 +833,7 @@ body.show-prov .prov-label span { opacity: 1; }
   width: 29px; height: 29px;
   display: grid;
   place-items: center;
-  background: rgba(255, 253, 247, .9);
+  background: rgba(250, 247, 237, .9);
   border: 1px solid var(--line);
   border-radius: 50%;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
@@ -820,13 +850,13 @@ body.show-prov .prov-label span { opacity: 1; }
 }
 .round-btn:hover {
   background: #fff;
-  border-color: rgba(168, 79, 63, .42);
+  border-color: rgba(169, 79, 60, .42);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(41, 46, 43, .12), inset 0 1px 0 rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 10px rgba(41, 63, 59, .12), inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 .round-btn:active { transform: translateY(0); }
 .round-btn svg { width: 15px; height: 15px; fill: none; stroke: var(--ink-2); stroke-width: var(--stroke-icon); stroke-linecap: round; }
-.round-btn[aria-expanded="true"] { border-color: rgba(168, 79, 63, .5); }
+.round-btn[aria-expanded="true"] { border-color: rgba(169, 79, 60, .5); }
 .round-btn[aria-expanded="true"] svg { stroke: var(--seal); }
 /* 命令面板的入口用 ⌘ 字形：比再画一个放大镜好认——
    放大镜会和搜索框撞语义，「⌘」明确指向「快捷键入口」。 */
@@ -850,7 +880,7 @@ body.show-prov .prov-label span { opacity: 1; }
   display: flex;
   flex-direction: column;
   background: rgba(252, 247, 236, .95);
-  border: 1px solid rgba(216, 208, 195, .95);
+  border: 1px solid rgba(213, 201, 175, .95);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-m), inset 0 0 0 1px rgba(255, 255, 255, .55);
   /* 底色已 95% 不透明，backdrop-filter 看不出效果，却要在每次拖动时重算背景模糊，故去掉 */
@@ -888,15 +918,15 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 12px;
   letter-spacing: 1px;
   color: var(--ink-2);
-  background: rgba(255, 253, 247, .8);
+  background: rgba(250, 247, 237, .8);
   border: 1px solid var(--line);
   border-radius: 999px;
   transition: color var(--t-hover) ease, border-color var(--t-hover) ease, background var(--t-hover) ease;
 }
 /* hover 用山青不用朱砂：朱砂在这套语言里专指「当前选中」，
    「随机一首」是一次操作，不是选中态。 */
-.shuffle:hover { color: var(--shan); border-color: rgba(76, 103, 91, .45); background: #fff; }
-.shuffle:active { transform: scale(.95); background: rgba(76, 103, 91, .08); }
+.shuffle:hover { color: var(--shan); border-color: rgba(86, 140, 120, .45); background: #fff; }
+.shuffle:active { transform: scale(.95); background: rgba(86, 140, 120, .08); }
 .shuffle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: var(--stroke-icon); stroke-linecap: round; }
 
 .tabs {
@@ -967,9 +997,9 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   border-radius: var(--r-md);
   transition: background var(--t-hover) ease, box-shadow var(--t-hover) ease, transform var(--t-hover) ease;
 }
-.item:hover { background: rgba(76, 103, 91, .15); transform: translateX(2px); }
+.item:hover { background: rgba(86, 140, 120, .15); transform: translateX(2px); }
 .item.on {
-  background: rgba(168, 79, 63, .075);
+  background: rgba(169, 79, 60, .075);
   box-shadow: inset 2px 0 0 var(--seal);
 }
 .item .thumb {
@@ -978,12 +1008,12 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   border-radius: var(--r-sm);
   overflow: hidden;
   background: var(--green-4);
-  box-shadow: inset 0 0 0 1px rgba(76, 103, 91, .45), 0 1px 3px rgba(41, 46, 43, .12);
+  box-shadow: inset 0 0 0 1px rgba(86, 140, 120, .45), 0 1px 3px rgba(41, 63, 59, .12);
   transition: box-shadow var(--t-hover) ease, transform var(--t-hover) ease;
 }
 .item:hover .thumb {
   transform: scale(1.035);
-  box-shadow: inset 0 0 0 1px rgba(76, 103, 91, .7), 0 3px 9px rgba(41, 46, 43, .2);
+  box-shadow: inset 0 0 0 1px rgba(86, 140, 120, .7), 0 3px 9px rgba(41, 63, 59, .2);
 }
 .item .thumb svg { width: 100%; height: 100%; display: block; }
 .it-main { flex: 1; min-width: 0; }
@@ -992,7 +1022,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-family: var(--serif);
   font-size: 15px;
   letter-spacing: 1px;
-  color: #292e2b;
+  color: #293f3b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1050,7 +1080,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-family: var(--sans);
   font-size: 10px;
   color: var(--ink-3);
-  background: rgba(255, 253, 247, .95);
+  background: rgba(250, 247, 237, .95);
   border: 1px solid var(--line);
   border-bottom-width: 2px;
   border-radius: var(--r-sm);
@@ -1080,7 +1110,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
           backdrop-filter: blur(18px) saturate(1.35);
   /* 边框同步收一档（.8 → .6）：纸是实的时候要一圈实金边来压，玻璃再压这么重就闷了 */
-  border: 1px solid rgba(76, 103, 91, .6);
+  border: 1px solid rgba(86, 140, 120, .6);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-l), inset 0 0 0 1px rgba(255, 255, 255, .6);
   opacity: 0;
@@ -1094,7 +1124,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   content: "";
   position: absolute;
   inset: 5px;
-  border: 1px solid rgba(76, 103, 91, .32);
+  border: 1px solid rgba(86, 140, 120, .32);
   border-radius: var(--r-sm);
   pointer-events: none;
 }
@@ -1119,10 +1149,10 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   place-items: center;
   font-family: var(--serif);
   font-size: 15px;
-  color: #fffcf5;
-  background: linear-gradient(160deg, #a84f3f, #8c3f31);
+  color: #faf7ed;
+  background: linear-gradient(160deg, #a94f3c, #8f4030);
   border-radius: var(--r-sm);
-  box-shadow: 0 2px 7px rgba(41, 46, 43, .35), inset 0 0 0 1px rgba(255, 236, 214, .32);
+  box-shadow: 0 2px 7px rgba(41, 63, 59, .35), inset 0 0 0 1px rgba(250, 247, 237, .32);
 }
 .c-head { padding: 4px 28px 0 8px; text-align: center; }
 .c-head h2 {
@@ -1131,7 +1161,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-weight: 600;
   letter-spacing: 4px;
   line-height: 1.3;
-  color: #292e2b;
+  color: #293f3b;
 }
 .c-sub {
   margin-top: 8px;
@@ -1158,7 +1188,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;              /* 竖向永不滚动：那一轴没有溢出（位移已被内边距吸收） */
-  background: linear-gradient(180deg, rgba(76, 103, 91, .085), rgba(76, 103, 91, .035));
+  background: linear-gradient(180deg, rgba(86, 140, 120, .085), rgba(86, 140, 120, .035));
   border-radius: var(--r-sm);
 }
 .c-poem .col {
@@ -1170,7 +1200,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-weight: 500;
   line-height: 1.98;
   letter-spacing: 4px;
-  color: #292e2b;
+  color: #293f3b;
 }
 /* 句与句之间：一根上下渐隐的牙签线（比实线border轻，不抢字） */
 .c-poem .col::after,
@@ -1183,8 +1213,8 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   width: 1px;
   pointer-events: none;
   background: linear-gradient(180deg,
-    rgba(76, 103, 91, 0) 0%, rgba(76, 103, 91, .42) 16%,
-    rgba(76, 103, 91, .42) 84%, rgba(76, 103, 91, 0) 100%);
+    rgba(86, 140, 120, 0) 0%, rgba(86, 140, 120, .42) 16%,
+    rgba(86, 140, 120, .42) 84%, rgba(86, 140, 120, 0) 100%);
 }
 .c-poem .col:first-child::after { display: none; }
 
@@ -1199,7 +1229,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   gap: 6px;
   margin-top: 15px;
   padding-top: 13px;
-  border-top: 1px dashed rgba(76, 103, 91, .45);
+  border-top: 1px dashed rgba(86, 140, 120, .45);
 }
 .c-others button {
   padding: 4px 12px;
@@ -1207,12 +1237,12 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 13px;
   letter-spacing: 1px;
   color: var(--seal);
-  background: rgba(168, 79, 63, .05);
-  border: 1px dashed rgba(168, 79, 63, .42);
+  background: rgba(169, 79, 60, .05);
+  border: 1px dashed rgba(169, 79, 60, .42);
   border-radius: 999px;
   transition: background var(--t-hover) ease, border-color var(--t-hover) ease;
 }
-.c-others button:hover { background: rgba(168, 79, 63, .12); border-style: solid; }
+.c-others button:hover { background: rgba(169, 79, 60, .12); border-style: solid; }
 .c-others em { color: var(--ink-3); font-size: 13px; padding: 4px 0; }
 
 .c-meta {
@@ -1232,15 +1262,15 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   padding: 3px 11px;
   font-size: 13px;
   letter-spacing: 1px;
-  color: #6a6e68;
-  border: 1px solid rgba(76, 103, 91, .62);
+  color: #656f68;
+  border: 1px solid rgba(86, 140, 120, .62);
   border-radius: 999px;
 }
 
 .c-rule {
   height: 1px;
   margin: 15px 0 14px;
-  background: linear-gradient(90deg, rgba(76, 103, 91, .72), rgba(76, 103, 91, .08));
+  background: linear-gradient(90deg, rgba(86, 140, 120, .72), rgba(86, 140, 120, .08));
 }
 /* 诗以下的散文区：统一收成一条居中的行宽，别让「诗意简析」把卡片撑到 max-width
    （竖排诗才是决定卡片宽度的那个；散文只用一条舒服的阅读宽度） */
@@ -1252,7 +1282,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #4e5a52;
+  color: #3f5149;
 }
 .c-sec h3::before {
   content: "";
@@ -1268,7 +1298,7 @@ body.side-open #sidebar { transform: none; opacity: 1; pointer-events: auto; }
   font-size: 15px;
   line-height: 1.9;
   letter-spacing: 0px;
-  color: #4e5a52;
+  color: #3f5149;
 }
 .c-link {
   display: inline-flex;
@@ -1341,15 +1371,15 @@ body.panel-open #bottomBar {
   font-size: 13px;
   letter-spacing: 1px;
   color: var(--ink-2);
-  background: rgba(255, 253, 247, .8);
+  background: rgba(250, 247, 237, .8);
   border: 1px solid var(--line);
   border-radius: 999px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
   transition: color var(--t-hover) ease, border-color var(--t-hover) ease, background var(--t-hover) ease;
 }
-#sideToggle:hover { color: var(--seal); border-color: rgba(168, 79, 63, .42); background: #fff; }
+#sideToggle:hover { color: var(--seal); border-color: rgba(169, 79, 60, .42); background: #fff; }
 #sideToggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: var(--stroke-icon); stroke-linecap: round; }
-body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 79, 63, .42); }
+body.side-open #sideToggle { color: var(--seal); border-color: rgba(169, 79, 60, .42); }
 
 .bs-counts { display: inline-flex; align-items: baseline; gap: 2px; padding: 0 12px 0 14px; position: relative; }
 /* 分类统计与总量统计之间的分隔：原来用 --line-2，太淡几乎看不见。
@@ -1378,8 +1408,8 @@ body.side-open #sideToggle { color: var(--seal); border-color: rgba(168, 79, 63,
   place-items: center;
   font-family: var(--serif);
   font-size: 12px;
-  color: #fffcf5;
-  background: linear-gradient(160deg, #557063, #435b4f);
+  color: #faf7ed;
+  background: linear-gradient(160deg, #376b60, #2f5a51);
   border-radius: var(--r-seal);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
 }
@@ -1425,7 +1455,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   inset: -10px;
   border-radius: 50%;
 }
-#sideClose:hover { color: var(--seal); background: rgba(168, 79, 63, .1); }
+#sideClose:hover { color: var(--seal); background: rgba(169, 79, 60, .1); }
 #sideClose svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: var(--stroke-icon); stroke-linecap: round; }
 
 /* ══════════ 右缘竖排题词 ══════════ */
@@ -1445,8 +1475,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 14px;
   letter-spacing: 6px;
-  color: #6a6e68;              /* 同 .cp-line：3.44:1 → 4.60:1 */
-  text-shadow: 0 1px 0 rgba(255, 253, 246, .8), 0 0 10px rgba(250, 246, 235, .85);
+  color: #656f68;              /* 同 .cp-line：3.44:1 → 4.60:1 */
+  text-shadow: 0 1px 0 rgba(250, 247, 237, .8), 0 0 10px rgba(250, 246, 235, .85);
 }
 .sv-seal {
   width: 15px; height: 15px;
@@ -1455,10 +1485,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   place-items: center;
   font-family: var(--serif);
   font-size: 10px;
-  color: #fffcf5;
+  color: #faf7ed;
   background: var(--seal);
   border-radius: var(--r-seal);
-  box-shadow: inset 0 0 0 1px rgba(255, 236, 214, .4);
+  box-shadow: inset 0 0 0 1px rgba(250, 247, 237, .4);
 }
 
 /* ══════════ 罗盘 · 缩放 ══════════ */
@@ -1474,7 +1504,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   align-items: center;
   justify-content: center;
   gap: 1px;
-  background: rgba(253, 248, 236, .95);
+  background: rgba(250, 247, 237, .95);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-s);
@@ -1482,10 +1512,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 }
 #compass .c-label { font-family: var(--serif); font-size: 10px; letter-spacing: 1px; color: var(--ink-3); }
 #compass svg { width: 25px; height: 25px; }
-#compass .c-dial { fill: none; stroke: rgba(76, 103, 91, .75); stroke-width: var(--stroke-hair); }
+#compass .c-dial { fill: none; stroke: rgba(86, 140, 120, .75); stroke-width: var(--stroke-hair); }
 #compass .c-needle-n { fill: var(--seal); }
-#compass .c-needle-s { fill: #d8d0c3; }
-#compass .c-pin { fill: #fffcf5; stroke: rgba(76, 103, 91, .8); stroke-width: var(--stroke-hair); }
+#compass .c-needle-s { fill: #d5c9af; }
+#compass .c-pin { fill: #faf7ed; stroke: rgba(86, 140, 120, .8); stroke-width: var(--stroke-hair); }
 
 #zoomer {
   position: fixed;
@@ -1494,7 +1524,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   z-index: 610;
   display: flex;
   flex-direction: column;
-  background: rgba(253, 248, 236, .95);
+  background: rgba(250, 247, 237, .95);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-s);
@@ -1509,7 +1539,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   transition: background var(--t-hover) ease;
 }
 #zoomer button + button { border-top: 1px solid var(--line-2); }
-#zoomer button:hover { background: rgba(168, 79, 63, .07); }
+#zoomer button:hover { background: rgba(169, 79, 60, .07); }
 #zoomer svg { width: 15px; height: 15px; fill: none; stroke: var(--ink-2); stroke-width: var(--stroke-icon); stroke-linecap: round; }
 
 /* ══════════ 详情面板（右滑出） ══════════ */
@@ -1523,11 +1553,11 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-width: min(94vw, 1240px);
   display: flex;
   flex-direction: column;
-  background: rgba(252, 248, 238, .58);
+  background: rgba(250, 247, 237, .9);
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
           backdrop-filter: blur(18px) saturate(1.35);
-  border-left: 1px solid rgba(76, 103, 91, .5);
-  box-shadow: -22px 0 56px rgba(41, 46, 43, .2), inset 0 0 0 1px rgba(255, 255, 255, .4);
+  border-left: 1px solid rgba(86, 140, 120, .5);
+  box-shadow: -22px 0 56px rgba(41, 63, 59, .2), inset 0 0 0 1px rgba(255, 255, 255, .4);
   transform: translateX(102%);
   transition: transform var(--t-map) var(--ease);
 }
@@ -1595,7 +1625,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 27px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #292e2b;
+  color: #293f3b;
 }
 .d-sub { margin-top: 6px; font-size: 13px; letter-spacing: 2px; color: var(--ink-3); }
 /* 题下一条极细的金线：把「题名/作者」与下面的正文分开，
@@ -1606,7 +1636,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   width: 78px; height: 1px;
   margin: 12px auto 0;
   background: linear-gradient(90deg,
-    rgba(76, 103, 91, 0), rgba(76, 103, 91, .72), rgba(76, 103, 91, 0));
+    rgba(86, 140, 120, 0), rgba(86, 140, 120, .72), rgba(86, 140, 120, 0));
 }
 .d-more {
   display: inline-flex;
@@ -1617,8 +1647,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 13px;
   letter-spacing: 1px;
   color: var(--seal);
-  background: rgba(168, 79, 63, .06);
-  border: 1px solid rgba(168, 79, 63, .22);
+  background: rgba(169, 79, 60, .06);
+  border: 1px solid rgba(169, 79, 60, .22);
   border-radius: 999px;
 }
 .d-more svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: var(--stroke-icon); stroke-linecap: round; transition: transform var(--t-state) ease; }
@@ -1631,8 +1661,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   line-height: 1.85;
   color: var(--ink-2);
-  background: rgba(76, 103, 91, .09);
-  border-left: 2px solid rgba(76, 103, 91, .5);
+  background: rgba(86, 140, 120, .09);
+  border-left: 2px solid rgba(86, 140, 120, .5);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
 }
 
@@ -1644,7 +1674,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 18px;
   line-height: 2.15;
   letter-spacing: 3px;
-  color: #292e2b;
+  color: #293f3b;
   width: max-content;       /* 宽度＝诗句列数：诗越长抽屉越宽 */
   max-width: 100%;
   overflow-x: auto;
@@ -1680,7 +1710,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   flex: 1;
   height: 2px;
   border-radius: var(--r-seal);
-  background: rgba(76, 103, 91, .22);
+  background: rgba(86, 140, 120, .22);
   overflow: hidden;
 }
 .ds-fill {
@@ -1688,7 +1718,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   width: 100%;
   height: 100%;
   border-radius: var(--r-seal);
-  background: linear-gradient(90deg, rgba(76, 103, 91, .8), rgba(168, 79, 63, .7));
+  background: linear-gradient(90deg, rgba(86, 140, 120, .8), rgba(169, 79, 60, .7));
   transform-origin: 0 50%;
   transform: scaleX(0);
   transition: transform .12s linear;
@@ -1722,7 +1752,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 13px;
   letter-spacing: 1px;
   color: var(--ink-2);
-  background: rgba(255, 253, 247, .72);
+  background: rgba(250, 247, 237, .72);
   border: 1px solid var(--line);
   border-radius: 999px;
   transition: color var(--t-hover) ease, border-color var(--t-hover) ease, background var(--t-hover) ease;
@@ -1734,7 +1764,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   white-space: nowrap;
 }
 .dn-btn .dn-ar { flex: none; font-family: var(--serif); font-size: 15px; line-height: 1; opacity: .7; }
-.dn-btn:hover:not(:disabled) { color: var(--seal); border-color: rgba(168, 79, 63, .42); background: #fff; }
+.dn-btn:hover:not(:disabled) { color: var(--seal); border-color: rgba(169, 79, 60, .42); background: #fff; }
 .dn-btn:disabled { opacity: .42; cursor: default; }
 .dn-pos {
   flex: none;
@@ -1783,7 +1813,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #292e2b;
+  color: #293f3b;
 }
 .sec h3::before {
   content: "";
@@ -1794,7 +1824,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   background: var(--shan);
   border-radius: var(--r-seal);
 }
-.sec p { font-size: 14px; line-height: 1.95; letter-spacing: 1px; color: #4e5a52; }
+.sec p { font-size: 14px; line-height: 1.95; letter-spacing: 1px; color: #3f5149; }
 
 /* ── 背景故事 ──────────────────────────────────────────
    与「诗意简析」（讲这首诗**说了什么**）分工不同：这里讲它**怎么来的**。
@@ -1804,8 +1834,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-width: 560px;
   margin: 26px auto 0;
   padding: 15px 18px 16px;
-  background: linear-gradient(180deg, rgba(76, 103, 91, .12), rgba(76, 103, 91, .055));
-  border: 1px solid rgba(76, 103, 91, .3);
+  background: #edf1e8;
+  border: 1px solid rgba(86, 140, 120, .26);
   border-radius: var(--r-md);
 }
 /* 覆盖 .sec h3 的「居中 + 收窄到文字宽」：这一节的标题靠左，
@@ -1824,7 +1854,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   line-height: 2.05;
   letter-spacing: 0px;
-  color: #4e5a52;
+  color: #3f5149;
 }
 /* 落款前留白要够：故事块自带底色，紧贴着落款会显得挤 */
 .sec-story + .sec { margin-top: 28px; }
@@ -1841,7 +1871,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   letter-spacing: 1px;
   color: var(--seal);
 }
-.d-notes dd { margin: 2px 0 11px; font-size: 14px; line-height: 1.85; color: #4e5a52; }
+.d-notes dd { margin: 2px 0 11px; font-size: 14px; line-height: 1.85; color: #3f5149; }
 .sec-author { padding-top: 22px; border-top: 1px solid var(--line-2); }
 .sec-author p b { color: var(--ink); }
 
@@ -1863,9 +1893,9 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   width: 100%;
   height: 1px;
   background: linear-gradient(90deg,
-    rgba(76, 103, 91, 0) 0%,
-    rgba(76, 103, 91, .5) 50%,
-    rgba(76, 103, 91, 0) 100%);
+    rgba(86, 140, 120, 0) 0%,
+    rgba(86, 140, 120, .5) 50%,
+    rgba(86, 140, 120, 0) 100%);
 }
 .dc-seal {
   width: 24px; height: 24px;
@@ -1875,10 +1905,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   padding: 3px;
   font-family: var(--serif);
   font-size: 12px;
-  color: #fffcf5;
-  background: linear-gradient(160deg, #a84f3f, #8c3f31);
+  color: #faf7ed;
+  background: linear-gradient(160deg, #a94f3c, #8f4030);
   border-radius: var(--r-seal);
-  box-shadow: 0 2px 7px rgba(41, 46, 43, .28), inset 0 0 0 1px rgba(255, 236, 214, .32);
+  box-shadow: 0 2px 7px rgba(41, 63, 59, .28), inset 0 0 0 1px rgba(250, 247, 237, .32);
   outline: 3px solid rgba(253, 248, 238, .9);
 }
 .dc-text {
@@ -1905,8 +1935,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   display: flex;
   flex-direction: column;
   background: var(--paper-3);
-  border-right: 1px solid rgba(76, 103, 91, .5);
-  box-shadow: 24px 0 56px rgba(41, 46, 43, .22);
+  border-right: 1px solid rgba(86, 140, 120, .5);
+  box-shadow: 24px 0 56px rgba(41, 63, 59, .22);
   transform: translateX(-103%);
   transition: transform var(--t-map) var(--ease);
 }
@@ -1924,7 +1954,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 19px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #292e2b;
+  color: #293f3b;
 }
 .panel-head .panel-close { position: static; }
 .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
@@ -1941,7 +1971,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   transition: all var(--t-hover) ease;
 }
 .filters button:hover { color: var(--ink); background: rgba(120, 108, 86, .12); }
-.filters button[aria-pressed="true"] { color: #fffcf5; background: var(--seal); border-color: var(--seal); }
+.filters button[aria-pressed="true"] { color: #faf7ed; background: var(--seal); border-color: var(--seal); }
 
 .row {
   display: flex;
@@ -1955,15 +1985,15 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: var(--r-md);
   transition: background var(--t-hover) ease;
 }
-.row:hover { background: rgba(76, 103, 91, .12); }
-.row.on { background: rgba(168, 79, 63, .08); box-shadow: inset 2px 0 0 var(--seal); }
+.row:hover { background: rgba(86, 140, 120, .12); }
+.row.on { background: rgba(169, 79, 60, .08); box-shadow: inset 2px 0 0 var(--seal); }
 .row-main { flex: 1; min-width: 0; }
 .row .t {
   display: block;
   font-family: var(--serif);
   font-size: 16px;
   letter-spacing: 1px;
-  color: #292e2b;
+  color: #293f3b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1990,14 +2020,14 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   height: 34px;
   margin: 0 0 10px;
   padding: 0 8px 0 10px;
-  background: linear-gradient(180deg, #fffdf9, #fbf9f3);
-  border: 1px solid rgba(216, 208, 195, .95);
+  background: linear-gradient(180deg, #fdfbf4, #f7f3e5);
+  border: 1px solid rgba(213, 201, 175, .95);
   border-radius: var(--r-md);
   transition: border-color var(--t-hover) ease, box-shadow var(--t-hover) ease;
 }
 .panel-search:focus-within {
-  border-color: rgba(168, 79, 63, .45);
-  box-shadow: 0 0 0 3px rgba(168, 79, 63, .08);
+  border-color: rgba(169, 79, 60, .45);
+  box-shadow: 0 0 0 3px rgba(169, 79, 60, .08);
 }
 .panel-search .i-search {
   flex: none;
@@ -2029,7 +2059,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border: none;
   border-radius: 50%;
 }
-.panel-search .ps-x:hover { background: rgba(168, 79, 63, .14); }
+.panel-search .ps-x:hover { background: rgba(169, 79, 60, .14); }
 .panel-search .ps-x svg { width: 100%; height: 100%; fill: none; stroke: var(--ink-2); stroke-width: var(--stroke-icon); stroke-linecap: round; }
 
 /* ══════════ 地标悬停卡 ══════════
@@ -2041,10 +2071,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   width: max-content;
   max-width: 264px;
   padding: 10px 12px 9px;
-  background: linear-gradient(180deg, rgba(255, 253, 247, .97), rgba(250, 245, 232, .95));
-  border: 1px solid rgba(216, 208, 195, .95);
+  background: linear-gradient(180deg, rgba(250, 247, 237, .97), rgba(250, 245, 232, .95));
+  border: 1px solid rgba(213, 201, 175, .95);
   border-radius: var(--r-md);
-  box-shadow: 0 2px 6px rgba(41, 46, 43, .1), 0 14px 32px rgba(41, 46, 43, .18),
+  box-shadow: 0 2px 6px rgba(41, 63, 59, .1), 0 14px 32px rgba(41, 63, 59, .18),
               inset 0 1px 0 rgba(255, 255, 255, .85);
   opacity: 0;
   transform: translateY(4px) scale(.97);
@@ -2064,7 +2094,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   width: 8px; height: 8px;
   margin-left: -4px;
   background: rgba(253, 250, 243, .97);
-  border: 1px solid rgba(216, 208, 195, .95);
+  border: 1px solid rgba(213, 201, 175, .95);
   transform: rotate(45deg);
 }
 #placeHover[data-side="up"]::after { bottom: -5px; border-top: none; border-left: none; }
@@ -2075,12 +2105,12 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   align-items: baseline;
   gap: 5px;
   padding-bottom: 7px;
-  border-bottom: 1px solid rgba(76, 103, 91, .32);
+  border-bottom: 1px solid rgba(86, 140, 120, .32);
   font-size: 13px;
   color: var(--ink-2);
 }
 .ph-head .i-pin { flex: none; width: 11px; height: 11px; fill: var(--seal); align-self: center; }
-.ph-head b { font-family: var(--serif); font-size: 14px; font-weight: 600; letter-spacing: 1px; color: #292e2b; }
+.ph-head b { font-family: var(--serif); font-size: 14px; font-weight: 600; letter-spacing: 1px; color: #293f3b; }
 .ph-n { margin-left: auto; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
 
 .ph-list { list-style: none; margin: 7px 0 0; padding: 0; }
@@ -2094,7 +2124,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 13px;
   letter-spacing: 1px;
-  color: #292e2b;
+  color: #293f3b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2104,7 +2134,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
 .ph-hint {
   margin-top: 7px;
   padding-top: 6px;
-  border-top: 1px dashed rgba(76, 103, 91, .3);
+  border-top: 1px dashed rgba(86, 140, 120, .3);
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--seal);
@@ -2140,10 +2170,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-height: 74vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #fffdf9, #fbf9f3);
-  border: 1px solid rgba(216, 208, 195, .95);
+  background: linear-gradient(180deg, #fdfbf4, #f7f3e5);
+  border: 1px solid rgba(213, 201, 175, .95);
   border-radius: var(--r-lg);
-  box-shadow: 0 20px 48px rgba(41, 46, 43, .18), 0 4px 14px rgba(41, 46, 43, .14),
+  box-shadow: 0 20px 48px rgba(41, 63, 59, .18), 0 4px 14px rgba(41, 63, 59, .14),
               inset 0 1px 0 rgba(255, 255, 255, .9);
   overflow: hidden;
   animation: palRise .22s cubic-bezier(.22, 1, .28, 1);
@@ -2206,11 +2236,11 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: var(--r-md);
   transition: background var(--t-hover) ease, box-shadow var(--t-hover) ease;
 }
-.pal-item.cur { background: rgba(168, 79, 63, .085); box-shadow: inset 2px 0 0 var(--seal); }
+.pal-item.cur { background: rgba(169, 79, 60, .085); box-shadow: inset 2px 0 0 var(--seal); }
 .pal-item.cur .pal-t { color: var(--seal-d); }
 
 /* 类型徽标：一个字，靠色相区分，不抢标题。
-   ⚠️ 反白字（#fffcf5）压在渐变上，**浅端**才是决定对比度的那一端：
+   ⚠️ 反白字（#faf7ed）压在渐变上，**浅端**才是决定对比度的那一端：
    原来 badge 地 的浅端 #c3a667 只有 2.14:1、题 #8d8f9c 只有 2.94:1，
    11px 的字远不够 AA。下面每组都把浅端压到 ≥4.5:1，深端更暗自然达标。
    （渲染探针量不到渐变底、会跳过这些元素，是这里靠令牌手算查出来的。） */
@@ -2222,10 +2252,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 11px;
   border-radius: var(--r-sm);
-  color: #fffcf5;
+  color: #faf7ed;
   background: var(--ink-3);
 }
-.pal-badge.b-poem { background: linear-gradient(160deg, #a84f3f, #8c3f31); }   /* 5.28:1 */
+.pal-badge.b-poem { background: linear-gradient(160deg, #a94f3c, #8f4030); }   /* 5.28:1 */
 .pal-badge.b-author { background: linear-gradient(160deg, #5c7760, #55705c); } /* 4.51:1 */
 .pal-badge.b-place { background: linear-gradient(160deg, #876d35, #6b5629); }  /* 4.51:1 */
 .pal-badge.b-tag { background: linear-gradient(160deg, #6d6f7e, #565863); }    /* 4.55:1 */
@@ -2236,7 +2266,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--serif);
   font-size: 15px;
   letter-spacing: 1px;
-  color: #292e2b;
+  color: #293f3b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2266,8 +2296,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--sans);
   font-size: 10px;
   color: var(--ink-3);
-  background: rgba(76, 103, 91, .14);
-  border: 1px solid rgba(76, 103, 91, .3);
+  background: rgba(86, 140, 120, .14);
+  border: 1px solid rgba(86, 140, 120, .26);
   border-radius: var(--r-sm);
 }
 
@@ -2288,7 +2318,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--ink-3);
-  background: rgba(76, 103, 91, .07);
+  background: rgba(86, 140, 120, .07);
   border-top: 1px solid var(--line-2);
 }
 .pal-foot span { display: inline-flex; align-items: center; gap: 4px; }
@@ -2299,7 +2329,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--sans);
   font-size: 10px;
   color: var(--ink-3);
-  background: rgba(255, 253, 247, .9);
+  background: rgba(250, 247, 237, .9);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
 }
@@ -2328,10 +2358,10 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   max-height: 82vh;
   overflow-y: auto;
   padding: 20px 22px 16px;
-  background: linear-gradient(180deg, #fffdf9, #fbf9f3);
-  border: 1px solid rgba(216, 208, 195, .95);
+  background: linear-gradient(180deg, #fdfbf4, #f7f3e5);
+  border: 1px solid rgba(213, 201, 175, .95);
   border-radius: var(--r-lg);
-  box-shadow: 0 20px 48px rgba(41, 46, 43, .18), 0 4px 14px rgba(41, 46, 43, .14),
+  box-shadow: 0 20px 48px rgba(41, 63, 59, .18), 0 4px 14px rgba(41, 63, 59, .14),
               inset 0 1px 0 rgba(255, 255, 255, .9);
   animation: palRise .22s cubic-bezier(.22, 1, .28, 1);
 }
@@ -2347,7 +2377,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #292e2b;
+  color: #293f3b;
 }
 .help-close {
   padding: 3px 9px;
@@ -2359,7 +2389,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: 999px;
   transition: color var(--t-hover) ease, background var(--t-hover) ease;
 }
-.help-close:hover { color: var(--seal); background: rgba(168, 79, 63, .08); }
+.help-close:hover { color: var(--seal); background: rgba(169, 79, 60, .08); }
 
 .help-list { margin: 4px 0 0; }
 .help-row {
@@ -2367,7 +2397,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   align-items: baseline;
   gap: 14px;
   padding: 9px 0;
-  border-bottom: 1px dashed rgba(76, 103, 91, .24);
+  border-bottom: 1px dashed rgba(86, 140, 120, .24);
 }
 .help-row:last-child { border-bottom: none; }
 .help-row dt { flex: none; width: 104px; display: flex; align-items: center; gap: 4px; }
@@ -2377,7 +2407,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #292e2b;
+  color: #293f3b;
 }
 .help-row dd span { font-size: 12px; line-height: 1.6; color: var(--ink-3); }
 .help-or { font-size: 10px; color: var(--ink-3); }
@@ -2388,7 +2418,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--sans);
   font-size: 11px;
   color: var(--ink-2);
-  background: rgba(255, 253, 247, .95);
+  background: rgba(250, 247, 237, .95);
   border: 1px solid var(--line);
   border-bottom-width: 2px;
   border-radius: var(--r-sm);
@@ -2431,7 +2461,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border-radius: var(--r-sm);
   transition: background var(--t-hover) ease, color var(--t-hover) ease;
 }
-.menu-pop button:hover { background: rgba(76, 103, 91, .15); color: var(--ink); }
+.menu-pop button:hover { background: rgba(86, 140, 120, .15); color: var(--ink); }
 .menu-pop b { font-weight: 600; color: var(--seal); }
 .menu-pop i { font-size: 12px; color: var(--ink-3); }
 
@@ -2444,8 +2474,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   padding: 10px 20px;
   font-size: 13px;
   letter-spacing: 1px;
-  color: #292e2b;
-  background: rgba(253, 248, 236, .97);
+  color: #293f3b;
+  background: rgba(250, 247, 237, .97);
   border: 1px solid var(--line);
   border-radius: 999px;
   box-shadow: var(--shadow-m);
@@ -2481,7 +2511,7 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   padding: 2px 7px 10px;
   font-family: var(--serif); font-size: 15px; letter-spacing: 1px; color: var(--ink-2);
-  border-bottom: 1px solid rgba(76, 103, 91, .35);
+  border-bottom: 1px solid rgba(86, 140, 120, .35);
 }
 .pl-head .pl-n { font-size: 12px; color: var(--ink-3); letter-spacing: 0px; white-space: nowrap; }
 .pl-item {
@@ -2492,9 +2522,9 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   border: 1px solid transparent; border-radius: var(--r-md);
   transition: background var(--t-hover) ease, border-color var(--t-hover) ease;
 }
-.pl-item:hover { background: rgba(255, 255, 255, .72); border-color: rgba(168, 79, 63, .3); }
-.pl-item.on { background: rgba(168, 79, 63, .08); border-color: rgba(168, 79, 63, .35); }
-.pl-item .pl-t { font-family: var(--serif); font-size: 16px; letter-spacing: 1px; color: #292e2b; }
+.pl-item:hover { background: rgba(255, 255, 255, .72); border-color: rgba(169, 79, 60, .3); }
+.pl-item.on { background: rgba(169, 79, 60, .08); border-color: rgba(169, 79, 60, .35); }
+.pl-item .pl-t { font-family: var(--serif); font-size: 16px; letter-spacing: 1px; color: #293f3b; }
 .pl-item.on .pl-t { color: var(--seal-d); font-weight: 600; }
 .pl-item .pl-m { font-size: 12px; letter-spacing: 1px; color: var(--ink-3); }
 
@@ -2512,16 +2542,16 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   letter-spacing: 1px;
   color: var(--seal-d);
-  background: rgba(168, 79, 63, .07);
-  border: 1px solid rgba(168, 79, 63, .42);
+  background: rgba(169, 79, 60, .07);
+  border: 1px solid rgba(169, 79, 60, .42);
   border-radius: 999px;
-  box-shadow: 0 1px 2px rgba(41, 46, 43, .06);
+  box-shadow: 0 1px 2px rgba(41, 63, 59, .06);
   transition: background var(--t-hover) ease, border-color var(--t-hover) ease, box-shadow var(--t-hover) ease, transform var(--t-hover) ease;
 }
 .others-more:hover {
-  background: rgba(168, 79, 63, .13);
+  background: rgba(169, 79, 60, .13);
   border-color: var(--seal);
-  box-shadow: 0 3px 10px rgba(41, 46, 43, .16);
+  box-shadow: 0 3px 10px rgba(41, 63, 59, .16);
 }
 .others-more:active { transform: translateY(1px); }
 .others-more svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: var(--stroke-icon); stroke-linecap: round; }
@@ -2530,8 +2560,8 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-family: var(--sans);
   font-size: 10px;
   color: var(--seal);
-  background: rgba(255, 253, 247, .9);
-  border: 1px solid rgba(168, 79, 63, .3);
+  background: rgba(250, 247, 237, .9);
+  border: 1px solid rgba(169, 79, 60, .3);
   border-radius: var(--r-sm);
 }
 
@@ -2552,19 +2582,19 @@ html.motion-off .bs b, html.motion-off .bs-counts b { animation: none; }
   font-size: 14px;
   letter-spacing: 1px;
   color: var(--ink-2);
-  background: rgba(255, 253, 247, .8);
+  background: rgba(250, 247, 237, .8);
   border: 1px solid var(--line);
   border-radius: 999px;
   transition: color var(--t-hover) ease, border-color var(--t-hover) ease, background var(--t-hover) ease;
 }
-.d-done:hover { color: var(--seal); border-color: rgba(168, 79, 63, .42); background: #fff; }
+.d-done:hover { color: var(--seal); border-color: rgba(169, 79, 60, .42); background: #fff; }
 .d-done kbd {
   padding: 1px 5px;
   font-family: var(--sans);
   font-size: 10px;
   color: var(--ink-3);
-  background: rgba(76, 103, 91, .14);
-  border: 1px solid rgba(76, 103, 91, .3);
+  background: rgba(86, 140, 120, .14);
+  border: 1px solid rgba(86, 140, 120, .26);
   border-radius: var(--r-sm);
 }
 
@@ -2584,7 +2614,7 @@ html.motion-prep #paint { opacity: 0; }
 /* 焦点可见性：键盘导航时给一个统一的暖金轮廓 */
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid rgba(76, 103, 91, .85);
+  outline: 2px solid rgba(86, 140, 120, .85);
   outline-offset: 2px;
   border-radius: var(--r-sm);
 }
@@ -2593,12 +2623,12 @@ input:focus-visible {
 .c-poem .col:not(:first-child),
 .d-poem .line:not(:first-child) { transition: background var(--t-state) ease; }
 .c-poem .col:hover,
-.d-poem .line:hover { background: rgba(76, 103, 91, .09); }
+.d-poem .line:hover { background: rgba(86, 140, 120, .09); }
 
 /* 卡片金角花饰（用 border-image 不引入新节点，靠中央卡的四角「衬角」） */
 .c-head h2,
 .d-head h2 {
-  text-shadow: 0 1px 0 rgba(255, 253, 246, .9), 0 0 14px rgba(250, 244, 226, .55);
+  text-shadow: 0 1px 0 rgba(250, 247, 237, .9), 0 0 14px rgba(250, 244, 226, .55);
 }
 
 /* 详情抽屉纸纹与卡面同配方，让「磨砂玻璃」上再衬一层宣纸的纤维感 */

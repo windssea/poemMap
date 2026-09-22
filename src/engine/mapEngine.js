@@ -39,22 +39,25 @@ const REGION = {
 };
 /* 青绿设色：高原偏白、戈壁偏沙、江南偏绿，同一地区里再按 adcode 微差 */
 const TINTS = {
-  东北: ["#e0dbbc", "#d9d5b5"],
-  华北: ["#e5dbbc", "#ded4b4"],
-  华东: ["#dce2bf", "#d6dcb9"],   // 江南
-  华中: ["#e0e0bd", "#d9d9b7"],
-  华南: ["#d6e0bb", "#d0dbb4"],
-  西南: ["#d9e2bf", "#d3dcb9"],
-  西北: ["#ebe2c5", "#e4dbbc"],
-  其他: ["#e2dec0", "#dcd8b9"],
+  /* 以陆地绢黄 #eadcb5 为基准，各区只留一点冷暖差：
+     西北偏沙、江南偏青绿、其余居中。整体比原来暖，青绿让给山体。 */
+  东北: ["#e9dcb6", "#e3d7ae"],
+  华北: ["#ebddb4", "#e5d8ac"],
+  华东: ["#e6e0b8", "#e0dab0"],   // 江南：略偏青绿
+  华中: ["#e8ddb6", "#e2d8ae"],
+  华南: ["#e3dfb4", "#ddd9ac"],
+  西南: ["#e5dfb6", "#dfdaae"],
+  西北: ["#efe3c2", "#e9ddb9"],
+  其他: ["#e8ddb8", "#e2d8b0"],
 };
 const PROV_FIX = {
-  西藏自治区: ["#f2efe3", "#eeece1"],
-  新疆维吾尔自治区: ["#ede3c9", "#e6dec1"],
-  青海省: ["#e9e3cc", "#e4dec2"],
-  内蒙古自治区: ["#e7dbb9", "#e0d5b1"],
-  四川省: ["#d8dfbc", "#d2dab5"],
-  云南省: ["#d7e0b9", "#d1dab3"],
+  /* 高原偏白、戈壁偏沙——与 TINTS 同一套绢黄基准 */
+  西藏自治区: ["#f3efe0", "#efeadd"],
+  新疆维吾尔自治区: ["#f0e4c4", "#eadfbb"],
+  青海省: ["#ece4c8", "#e7dfbe"],
+  内蒙古自治区: ["#eadcb4", "#e4d7ac"],
+  四川省: ["#e2deb2", "#dcd8aa"],
+  云南省: ["#e1dfb0", "#dbd9a8"],
 };
 
 /** 把 #rrggbb 按百分比调亮/调暗（amt 为负即压深）。用于省区边缘的「托底」色。 */
@@ -68,12 +71,12 @@ function shade(hex, amt) {
 }
 
 /* 山脊勾线（羽化与柔光靠几何，不用 CSS blur） */
-const RIDGE_INK = ["#617b69", "#698570", "#6e8c76", "#667c6c"];
+const RIDGE_INK = ["#3f6a74", "#446f78", "#4a747c", "#3d6870"];
 /* 山脚收进的「雾色」：接近省区底色，山脚由此没入地面/云气 */
-const RIDGE_MIST = "#e6e3c9";
+const RIDGE_MIST = "#ece2c4";
 /* 背光坡的覆盖色（纯色，不用渐变——理由见渲染处的注释）。
    比主山最深的墨绿再暗一档，但靠低透明度只当「一层阴影」用。 */
-const FACE_INK = "#4f695a";
+const FACE_INK = "#2c5a63";
 const CHINA_BOUNDS = L.latLngBounds([[17.4, 72.5], [54.2, 135.8]]);
 const PANE_Z = { prov: 400, terrain: 410, hydro: 418, wall: 425, border: 430, geoLabels: 470 };
 
@@ -143,9 +146,14 @@ export function createEngine(mapEl) {
       return {
         fillColor: "url(#pg" + f.properties.adcode + ")",
         fillOpacity: 1,
-        color: "#a8ad92",
+        /* 省界：方案给的是赭灰 #c6b78f @60–75%。
+           它压在陆地绢黄上全不透明也只有 1.46:1，按方案的 70% 合成后约 1.3:1 ——
+           那是一道「看得见、但很轻」的痕，也正是方案要的效果：
+           行政边界不该跟青绿山体抢。相邻省还各有略不同的绢黄底色兜着，
+           边界不是唯一的区分手段，所以这里不按 3:1 要求它。 */
+        color: "#c6b78f",
         weight: 1.5,
-        opacity: 0.38,         // 省界只留一线淡痕，柔和的过渡交给径向渐变
+        opacity: 0.7,
         lineJoin: "round",
       };
     },
@@ -302,18 +310,18 @@ export function createEngine(mapEl) {
   /* ---- 国境 ---- */
   L.geoJSON(country, {
     pane: "border",
-    style: { color: "#a8ae95", weight: 1.5, fill: false, lineJoin: "round", opacity: 0.8 },
+    style: { color: "#a89a6e", weight: 1.5, fill: false, lineJoin: "round", opacity: 0.85 },
   }).addTo(map);
 
   /* ---- 水系 / 运河 / 长城 ---- */
   (GEO_EXTRAS.rivers || []).forEach(function (r) {
     const pts = smoothPath(r.pts, 7);
-    L.polyline(pts, { pane: "hydro", color: "#93b4c5", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
-    L.polyline(pts, { pane: "hydro", color: "#659db2", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(pts, { pane: "hydro", color: "#8fb2bf", weight: 3.6, opacity: 0.26, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(pts, { pane: "hydro", color: "#518498", weight: 1.5, opacity: 0.92, lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   });
   if (GEO_EXTRAS.canal) {
     const cpts = smoothPath(GEO_EXTRAS.canal.pts, 7);
-    L.polyline(cpts, { pane: "hydro", color: "#a0bfc8", weight: 1.1, opacity: 0.6, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
+    L.polyline(cpts, { pane: "hydro", color: "#8fb2bf", weight: 1.1, opacity: 0.7, dashArray: "4 4", lineCap: "round", lineJoin: "round", interactive: false }).addTo(map);
   }
   if (GEO_EXTRAS.wall) {
     const wpts = smoothPath(GEO_EXTRAS.wall.pts, 6);
